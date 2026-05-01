@@ -22,6 +22,17 @@ if (isset($_POST['save_therapist'])) {
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$first_name, $middle_name, $last_name, $gender, $specialty, $experience, $id]);
 
+    // Clear old slots and save 4 new unique slots
+    $pdo->prepare("DELETE FROM therapist_schedule WHERE therapist_id = ?")->execute([$id]);
+    if (isset($_POST['schedule_times'])) {
+        // array_unique prevents duplicate times from being saved
+        $unique_times = array_unique(array_filter($_POST['schedule_times']));
+        $stmt_sched = $pdo->prepare("INSERT INTO therapist_schedule (therapist_id, time_start) VALUES (?, ?)");
+        foreach ($unique_times as $time) {
+            $stmt_sched->execute([$id, $time]);
+        }
+    }
+
     
     
     header("Location: manage_therapist.php?msg=Updated");
@@ -59,14 +70,19 @@ $therapists = $pdo->query("SELECT * FROM therapists WHERE status = 'active' ORDE
 </head>
 <body>
 
+<!-- Sidebar -->
 <nav class="sidebar" id="sidebar">
-    <div class="p-4 mb-4 text-white">
-        <h4 class="fw-bold">L&B <span style="color: var(--accent-gold);">Admin</span></h4>
+    <div class="p-4 mb-4">
+        <h4 class="fw-bold mb-0 text-white">L&B <span style="color: var(--accent-gold);">Admin</span></h4>
     </div>
     <div class="nav flex-column">
-        <a href="dashboard.php" class="nav-link"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+        <a href="dashboard.php" class="nav-link active"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
         <a href="manage_appointment.php" class="nav-link"><i class="bi bi-calendar-event"></i> Appointments</a>
-        <a href="manage_therapist.php" class="nav-link active"><i class="bi bi-person-badge"></i> Therapists</a>
+        
+        <!-- Added Treatments Option Here -->
+        <a href="manage_treatments.php" class="nav-link"><i class="bi bi-droplet-half"></i> Treatments</a>
+        
+        <a href="manage_therapist.php" class="nav-link"><i class="bi bi-person-badge"></i> Therapists</a>
         <a href="manage_room.php" class="nav-link"><i class="bi bi-door-open"></i> Rooms</a>
         <a href="manage_account.php" class="nav-link"><i class="bi bi-people"></i> Accounts</a>
         <a href="system_logs.php" class="nav-link"><i class="bi bi-shield-lock"></i> Logs</a>
@@ -143,6 +159,17 @@ $therapists = $pdo->query("SELECT * FROM therapists WHERE status = 'active' ORDE
                         </div>
                         <div class="col-md-6"><label class="form-label small fw-bold">Specialty</label><input type="text" name="specialty" id="specialty" class="form-control" required></div>
                         <div class="col-12"><label class="form-label small fw-bold">Work Experience</label><textarea name="work_experience" id="experience" class="form-control" rows="4"></textarea></div>
+
+                        <div class="col-12 mt-3">
+                        <label class="form-label small fw-bold text-uppercase" style="color: var(--accent-gold);">Daily Schedule (4 Slots)</label>
+                        <div class="row g-2">
+                            <div class="col-3"><input type="time" name="schedule_times[]" class="form-control sched-input"></div>
+                            <div class="col-3"><input type="time" name="schedule_times[]" class="form-control sched-input"></div>
+                            <div class="col-3"><input type="time" name="schedule_times[]" class="form-control sched-input"></div>
+                            <div class="col-3"><input type="time" name="schedule_times[]" class="form-control sched-input"></div>
+                        </div>
+                    </div>
+
                     </div>
                     <div class="alert alert-info mt-3 py-2 small">
                         <i class="bi bi-info-circle me-2"></i> Account credentials (username/password) are managed in <b>Manage Accounts</b>.
@@ -166,6 +193,17 @@ function editTherapist(data) {
     document.getElementById('gender').value = data.gender;
     document.getElementById('specialty').value = data.specialty;
     document.getElementById('experience').value = data.work_experience;
+    // Fetch and fill the 4 schedule slots
+    const inputs = document.querySelectorAll('.sched-input');
+    inputs.forEach(input => input.value = ''); // Reset first
+    
+    fetch(`get_schedules.php?id=${data.therapist_id}`)
+        .then(res => res.json())
+        .then(slots => {
+            slots.forEach((slot, index) => {
+                if(inputs[index]) inputs[index].value = slot.time_start;
+            });
+        });
     
     var myModal = new bootstrap.Modal(document.getElementById('therapistModal'));
     myModal.show();

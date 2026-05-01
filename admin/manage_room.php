@@ -62,15 +62,20 @@ $rooms = $pdo->query("SELECT * FROM rooms WHERE status = 'active' ORDER BY room_
 </head>
 <body>
 
+<!-- Sidebar -->
 <nav class="sidebar" id="sidebar">
-    <div class="p-4 mb-4 text-white">
-        <h4 class="fw-bold">L&B <span style="color: var(--accent-gold);">Admin</span></h4>
+    <div class="p-4 mb-4">
+        <h4 class="fw-bold mb-0 text-white">L&B <span style="color: var(--accent-gold);">Admin</span></h4>
     </div>
     <div class="nav flex-column">
-        <a href="dashboard.php" class="nav-link"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+        <a href="dashboard.php" class="nav-link active"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
         <a href="manage_appointment.php" class="nav-link"><i class="bi bi-calendar-event"></i> Appointments</a>
+        
+        <!-- Added Treatments Option Here -->
+        <a href="manage_treatments.php" class="nav-link"><i class="bi bi-droplet-half"></i> Treatments</a>
+        
         <a href="manage_therapist.php" class="nav-link"><i class="bi bi-person-badge"></i> Therapists</a>
-        <a href="manage_room.php" class="nav-link active"><i class="bi bi-door-open"></i> Rooms</a>
+        <a href="manage_room.php" class="nav-link"><i class="bi bi-door-open"></i> Rooms</a>
         <a href="manage_account.php" class="nav-link"><i class="bi bi-people"></i> Accounts</a>
         <a href="system_logs.php" class="nav-link"><i class="bi bi-shield-lock"></i> Logs</a>
         <a href="logout.php" class="nav-link text-danger mt-5"><i class="bi bi-box-arrow-right"></i> Logout</a>

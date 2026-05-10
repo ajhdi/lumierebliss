@@ -100,90 +100,11 @@ while ($row = $content_query->fetch(PDO::FETCH_ASSOC)) {
     <meta charset="UTF-8">
     <title>Manage Services | L&B Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>
-        :root {
-            --sidebar-width: 260px;
-            --accent-gold: #C5A059;
-            --dark-bg: #1a1a1a;
-        }
 
-        body {
-            background-color: #f4f6f9;
-            font-family: 'Inter', sans-serif;
-        }
+    <link rel="stylesheet" href="../admin_assets/manage_treatments.css">
 
-        /* Consistent Sidebar */
-        .sidebar {
-            width: var(--sidebar-width);
-            height: 100vh;
-            position: fixed;
-            background: var(--dark-bg);
-            color: white;
-            transition: 0.3s;
-            z-index: 1000;
-        }
-
-        .nav-link {
-            color: rgba(255, 255, 255, 0.6);
-            padding: 15px 25px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: 0.2s;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            color: white;
-            background: rgba(255, 255, 255, 0.05);
-            border-left: 4px solid var(--accent-gold);
-        }
-
-        .main-content {
-            margin-left: var(--sidebar-width);
-            padding: 40px;
-            transition: 0.3s;
-        }
-
-        .card-stat {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s;
-        }
-
-        .card-stat:hover {
-            transform: translateY(-5px);
-        }
-
-        .icon-box {
-            width: 45px;
-            height: 45px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f8f9fa;
-            color: var(--accent-gold);
-            font-size: 1.2rem;
-        }
-
-        /* Mobile View */
-        @media (max-width: 991px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.active {
-                transform: translateX(0);
-            }
-
-            .main-content {
-                margin-left: 0;
-            }
-        }
-    </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 

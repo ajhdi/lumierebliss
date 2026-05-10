@@ -9,29 +9,66 @@ if (!isset($_SESSION['admin_id'])) {
 
 // Handle Room Save (Add/Edit)
 if (isset($_POST['save_room'])) {
-    $room_name = $_POST['room_name'];
-    $room_type = $_POST['room_type'];
-    $fee = $_POST['additional_fee'];
-    $id = $_POST['room_id'];
+    header('Content-Type: application/json');
+    try {
 
-    if (!empty($id)) {
-        $stmt = $pdo->prepare("UPDATE rooms SET room_name=?, room_type=?, additional_fee=? WHERE room_id=?");
-        $stmt->execute([$room_name, $room_type, $fee, $id]);
-    } else {
-        $stmt = $pdo->prepare("INSERT INTO rooms (room_name, room_type, additional_fee) VALUES (?, ?, ?)");
-        $stmt->execute([$room_name, $room_type, $fee]);
+        $room_name = $_POST['room_name'];
+        $room_type = $_POST['room_type'];
+        $fee = $_POST['additional_fee'];
+        $id = $_POST['room_id'] ?? '';
+
+        if (!empty($id)) {
+
+            $stmt = $pdo->prepare("UPDATE rooms SET room_name=?, room_type=?, additional_fee=? WHERE room_id=?");
+            $stmt->execute([$room_name, $room_type, $fee, $id]);
+
+            echo json_encode([
+                "status" => "success",
+                "message" => "Room updated successfully"
+            ]);
+            exit();
+
+        } else {
+
+            $stmt = $pdo->prepare("INSERT INTO rooms (room_name, room_type, additional_fee) VALUES (?, ?, ?)");
+            $stmt->execute([$room_name, $room_type, $fee]);
+
+            echo json_encode([
+                "status" => "success",
+                "message" => "Room added successfully"
+            ]);
+            exit();
+        }
+
+    } catch (Exception $e) {
+
+        echo json_encode([
+            "status" => "error",
+            "message" => $e->getMessage()
+        ]);
+        exit();
     }
-    header("Location: manage_room.php?msg=Success");
-    exit();
 }
 
-// Handle Archive
 if (isset($_POST['archive_room_id'])) {
-    $stmt = $pdo->prepare("UPDATE rooms SET status = 'archived' WHERE room_id = ?");
-    $stmt->execute([$_POST['archive_room_id']]);
-    header("Location: manage_room.php?msg=Archived");
-    exit();
+    header('Content-Type: application/json');
+    try {
+        $stmt = $pdo->prepare("UPDATE rooms SET status = 'archived' WHERE room_id = ?");
+        $stmt->execute([$_POST['archive_room_id']]);
+
+        echo json_encode([
+            "status" => "success",
+            "message" => "Room archived successfully"
+        ]);
+    } catch (Exception $e) {
+        echo json_encode([
+            "status" => "error",
+            "message" => $e->getMessage()
+        ]);
+    }
+    exit; // prevent HTML output
 }
+
 
 $rooms = $pdo->query("SELECT * FROM rooms WHERE status = 'active' ORDER BY room_type ASC")->fetchAll();
 ?>
@@ -58,7 +95,9 @@ $rooms = $pdo->query("SELECT * FROM rooms WHERE status = 'active' ORDER BY room_
             .sidebar.active { transform: translateX(0); }
             .main-content { margin-left: 0; }
         }
+        
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -118,7 +157,11 @@ $rooms = $pdo->query("SELECT * FROM rooms WHERE status = 'active' ORDER BY room_
                             <button class="btn btn-sm btn-light rounded-circle" onclick='editRoom(<?= json_encode($r) ?>)'><i class="bi bi-pencil"></i></button>
                             <form action="" method="POST" class="d-inline">
                                 <input type="hidden" name="archive_room_id" value="<?= $r['room_id'] ?>">
-                                <button type="submit" class="btn btn-sm btn-light rounded-circle text-danger" onclick="return confirm('Archive this room?')"><i class="bi bi-archive"></i></button>
+                                <button type="button" 
+                                        class="btn btn-sm btn-light rounded-circle text-danger" 
+                                        onclick="archiveRoom(<?= $r['room_id'] ?>)">
+                                    <i class="bi bi-archive"></i>
+                                </button>
                             </form>
                         </td>
                     </tr>
@@ -161,7 +204,9 @@ $rooms = $pdo->query("SELECT * FROM rooms WHERE status = 'active' ORDER BY room_
                 </div>
                 <div class="modal-footer border-0 px-4 pb-4">
                     <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" name="save_room" class="btn btn-dark rounded-pill px-4">Save Room</button>
+                    <button type="button" onclick="saveRoom()" class="btn btn-dark rounded-pill px-4">
+                        Save Room
+                    </button>
                 </div>
             </form>
         </div>
@@ -185,6 +230,99 @@ document.getElementById('roomModal').addEventListener('hidden.bs.modal', functio
     document.getElementById('room_id').value = "";
     document.getElementById('roomModalTitle').innerText = "Add New Room";
 });
+
+function saveRoom() {
+    const form = document.getElementById('roomForm');
+    const formData = new FormData(form);
+    formData.append('save_room', '1');
+    fetch(window.location.pathname,  {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if (data.status === 'success') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Saved!',
+                text: data.message,
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            // close modal
+            bootstrap.Modal.getInstance(document.getElementById('roomModal')).hide();
+
+            // optional reload table or page
+            setTimeout(() => location.reload(), 1000);
+
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: data.message
+            });
+        }
+
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Server Error',
+            text: 'Something went wrong!'
+        });
+        console.error(error);
+    });
+}
+
+function archiveRoom(roomId) {
+    Swal.fire({
+        title: 'Archive this room?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, archive it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formData = new FormData();
+            formData.append('archive_room_id', roomId);
+
+            fetch('manage_room.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Archived!',
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server Error',
+                    text: 'Something went wrong!'
+                });
+                console.error(error);
+            });
+        }
+    });
+}
+
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

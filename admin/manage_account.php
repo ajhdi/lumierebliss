@@ -52,12 +52,23 @@ if (isset($_POST['add_therapist'])) {
 }
 
 // --- LOGIC: ARCHIVE THERAPIST ---
+
 if (isset($_POST['archive_therapist'])) {
-    $id = $_POST['archive_id'];
-    $stmt = $pdo->prepare("UPDATE therapists SET status = 'archived' WHERE therapist_id = ?");
-    $stmt->execute([$id]);
-    $msg = "Therapist account archived.";
+    header('Content-Type: application/json');
+    try {
+        $stmt = $pdo->prepare("UPDATE therapists SET status = 'archived' WHERE therapist_id = ?");
+        $stmt->execute([$_POST['archive_id']]);
+
+        echo json_encode(["status" => "success", "message" => "Therapist archived successfully"]);
+        exit;
+    } catch (Exception $e) {
+        echo json_encode(["status" => "error", "message" => $e->getMessage()]);
+        exit;
+    }
+
 }
+
+
 
 // --- LOGIC: RESTORE THERAPIST ---
 if (isset($_POST['restore_therapist'])) {
@@ -143,6 +154,7 @@ $users = $pdo->query("SELECT * FROM users ORDER BY created_at DESC")->fetchAll()
         .form-control:focus { box-shadow: none; border-color: var(--accent-gold); }
         @media (max-width: 991px) { .sidebar { transform: translateX(-100%); } .sidebar.active { transform: translateX(0); } .main-content { margin-left: 0; } }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -174,7 +186,12 @@ $users = $pdo->query("SELECT * FROM users ORDER BY created_at DESC")->fetchAll()
         </button>
     </div>
 
-    <?php if($msg): ?> <div class="alert alert-success alert-dismissible fade show"><?= $msg ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> <?php endif; ?>
+    <?php if($msg): ?> 
+    <div id="autoAlert" class="alert alert-success alert-dismissible fade show">
+        <?= $msg ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div> 
+    <?php endif; ?>
     <?php if($error): ?> <div class="alert alert-danger alert-dismissible fade show"><?= $error ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> <?php endif; ?>
 
     <div class="account-card p-4">
@@ -211,10 +228,12 @@ $users = $pdo->query("SELECT * FROM users ORDER BY created_at DESC")->fetchAll()
                                 <td><?= $t['specialty'] ?></td>
                                 <td class="text-end">
                                     <button class="btn btn-sm btn-outline-danger rounded-pill px-3 me-1" onclick="openResetModal('therapist', <?= $t['therapist_id'] ?>)">Reset</button>
-                                    <form action="" method="POST" class="d-inline" onsubmit="return confirm('Archive this therapist?')">
-                                        <input type="hidden" name="archive_id" value="<?= $t['therapist_id'] ?>">
-                                        <button type="submit" name="archive_therapist" class="btn btn-sm btn-light rounded-circle text-danger shadow-sm"><i class="bi bi-archive"></i></button>
-                                    </form>
+                                    <button type="button" 
+                                            class="btn btn-sm btn-light rounded-circle text-danger shadow-sm" 
+                                            onclick="archiveTherapist(<?= $t['therapist_id'] ?>)">
+                                        <i class="bi bi-archive"></i>
+                                    </button>
+
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -389,17 +408,21 @@ $users = $pdo->query("SELECT * FROM users ORDER BY created_at DESC")->fetchAll()
                     
                     <div class="mb-3">
                         <label class="form-label small text-muted">New Password</label>
-                        <input type="password" name="new_password" id="reset_pass" class="form-control rounded-pill" placeholder="••••••••" required>
+                        <input type="password" name="new_password" id="reset_pass" 
+                            class="form-control rounded-pill" placeholder="••••••••" required>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label small text-muted">Confirm New Password</label>
-                        <input type="password" name="confirm_new_password" id="reset_confirm" class="form-control rounded-pill" placeholder="••••••••" required>
+                        <input type="password" name="confirm_new_password" id="reset_confirm" 
+                            class="form-control rounded-pill" placeholder="••••••••" required>
                     </div>
 
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" id="showResetPass">
-                        <label class="form-check-label small text-muted" for="showResetPass">Show Passwords</label>
+                        <label class="form-check-label small text-muted" for="showResetPass">
+                            Show Passwords
+                        </label>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pb-4 px-4">
@@ -425,10 +448,74 @@ document.getElementById('showPass').addEventListener('change', function() {
     document.getElementById('cpass').type = type;
 });
 
-
+document.getElementById('showResetPass').addEventListener('change', function() {
+    const pass = document.getElementById('reset_pass');
+    const confirm = document.getElementById('reset_confirm');
+    const type = this.checked ? 'text' : 'password';
+    pass.type = type;
+    confirm.type = type;
+});
+document.addEventListener("DOMContentLoaded", function() {
+    const alert = document.getElementById('autoAlert');
+    if (alert) {
+        setTimeout(() => {
+            // Trigger Bootstrap's dismiss
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, 3000); // 3 seconds before fade out
+    }
+});
 <?php if(isset($show_reset_modal)): ?>
     new bootstrap.Modal(document.getElementById('finalResetModal')).show();
 <?php endif; ?>
+function archiveTherapist(id) {
+    Swal.fire({
+        title: 'Archive this therapist?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, archive',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formData = new FormData();
+            formData.append('archive_id', id);
+            formData.append('archive_therapist', '1');
+
+            fetch(window.location.pathname, {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Archived!',
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server Error',
+                    text: 'Something went wrong!'
+                });
+                console.error(error);
+            });
+        }
+    });
+}
+
 </script>
 </body>
 </html>

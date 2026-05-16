@@ -15,7 +15,7 @@
 
 session_start();
 require_once '../config/db.php';
-//require_once '../config/mail.php'; // Your PHPMailer / SMTP config
+// require_once '../user/config_mail.php'; // Your PHPMailer / SMTP config
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: signin.php");
@@ -38,6 +38,24 @@ $appointment_date = $_POST['appointment_date']       ?? '';
 $appointment_time = $_POST['appointment_time']       ?? '';
 $promotion_id     = !empty($_POST['promotion_id'])   ? (int)$_POST['promotion_id']  : null;
 $use_membership   = ($_POST['use_membership'] ?? '0') === '1';
+$end_time = null;
+echo "<pre>";
+
+print_r([
+    'user_id' => $user_id,
+    'booking_type' => $booking_type,
+    'treatment_id' => $treatment_id,
+    'package_id' => $package_id,
+    'therapist_id' => $therapist_id,
+    'room_id' => $room_id,
+    'appointment_date' => $appointment_date,
+    'appointment_time' => $appointment_time,
+    'promotion_id' => $promotion_id,
+    'use_membership' => $use_membership
+]);
+
+echo "</pre>";
+
 
 /* ─── Validate required fields ─── */
 $errors = [];
@@ -70,15 +88,17 @@ if ($booking_type === 'treatment') {
     $s_stmt->execute([$treatment_id]);
     $service = $s_stmt->fetch();
 } else {
-    $s_stmt = $pdo->prepare("SELECT * FROM packages WHERE package_id = ? AND status = 'active'");
+    $s_stmt = $pdo->prepare("SELECT * FROM packages WHERE package_id = ? AND status = 'available'");
     $s_stmt->execute([$package_id]);
     $service = $s_stmt->fetch();
 }
 
 if (!$service) {
     $_SESSION['booking_error'] = "Selected service is no longer available.";
-    header("Location: book_appointment.php");
-    exit;
+    // header("Location: book_appointment.php");
+    // exit;
+    echo "Selected service is no longer available\n";
+    die();
 }
 $service_name  = $service['name'];
 $service_price = (float)$service['price'];
@@ -89,8 +109,10 @@ $r_stmt->execute([$room_id]);
 $room = $r_stmt->fetch();
 if (!$room) {
     $_SESSION['booking_error'] = "Selected room is not available.";
-    header("Location: book_appointment.php");
-    exit;
+    // header("Location: book_appointment.php");
+    // exit;
+    echo "Selected room is not available.\n";
+    die();
 }
 $room_fee = (float)($room['additional_fee'] ?? 0);
 
@@ -100,8 +122,10 @@ $th_stmt->execute([$therapist_id]);
 $therapist = $th_stmt->fetch();
 if (!$therapist) {
     $_SESSION['booking_error'] = "Selected therapist is not available.";
-    header("Location: book_appointment.php");
-    exit;
+    // header("Location: book_appointment.php");
+    // exit;
+    echo "Selected therapist is not available. \n";
+    die();
 }
 $therapist_name = trim($therapist['first_name'] . ' ' . ($therapist['last_name'] ?? ''));
 
@@ -114,8 +138,10 @@ $dup_th = $pdo->prepare("
 $dup_th->execute([$therapist_id, $appointment_date, $appointment_time]);
 if ((int)$dup_th->fetchColumn() > 0) {
     $_SESSION['booking_error'] = "This therapist is already booked at that time. Please choose another.";
-    header("Location: book_appointment.php");
-    exit;
+    // header("Location: book_appointment.php");
+    // exit;
+    echo "This therapist is already booked at that tim \n";
+    die();
 }
 
 /* ─── ANTI-OVERBOOKING: Room at this slot ─── */
@@ -127,8 +153,10 @@ $dup_room = $pdo->prepare("
 $dup_room->execute([$room_id, $appointment_date, $appointment_time]);
 if ((int)$dup_room->fetchColumn() > 0) {
     $_SESSION['booking_error'] = "That room is already occupied at the requested time. Please choose another.";
-    header("Location: book_appointment.php");
-    exit;
+    // header("Location: book_appointment.php");
+    // exit;
+    echo "room already occupied \n";
+    die();
 }
 
 /* ─── DAILY LIMIT: Therapist max 4 sessions per day ─── */
@@ -140,8 +168,10 @@ $daily_count = $pdo->prepare("
 $daily_count->execute([$therapist_id, $appointment_date]);
 if ((int)$daily_count->fetchColumn() >= 4) {
     $_SESSION['booking_error'] = "This therapist has reached the maximum 4 sessions for that day. Please choose another.";
-    header("Location: book_appointment.php");
-    exit;
+    // header("Location: book_appointment.php");
+    // exit;
+    echo "therapist has reached the maximum 4 \n";
+    die();
 }
 
 /* ─── DUPLICATE CHECK: Same user same slot ─── */
@@ -153,8 +183,10 @@ $dup_user = $pdo->prepare("
 $dup_user->execute([$user_id, $appointment_date, $appointment_time]);
 if ((int)$dup_user->fetchColumn() > 0) {
     $_SESSION['booking_error'] = "You already have a booking at that time.";
-    header("Location: book_appointment.php");
-    exit;
+    // header("Location: book_appointment.php");
+    // exit;
+    echo "therapist has reached the maximum 4 \n";
+    die();
 }
 
 /* ─── Promotion ─── */
@@ -193,34 +225,47 @@ $total    = $subtotal + $vat;
 
 /* ─── Insert Appointment ─── */
 try {
+    echo "pumasok naba dito \n";
+
     $pdo->beginTransaction();
 
     $insert = $pdo->prepare("
-        INSERT INTO appointments (
-            user_id, treatment_id, package_id, booking_type,
-            therapist_id, room_id,
-            appointment_date, appointment_time,
-            promotion_id, use_membership,
-            base_price, room_fee, discount_amount, membership_discount,
-            subtotal, vat_amount, total_price,
-            status, payment_status, created_at
-        ) VALUES (
-            ?, ?, ?, ?,
-            ?, ?,
-            ?, ?,
-            ?, ?,
-            ?, ?, ?, ?,
-            ?, ?, ?,
-            'pending', 'unpaid', NOW()
-        )
-    ");
+    INSERT INTO appointments (
+        user_id,
+        therapist_id,
+        room_id,
+        treatment_id,
+        package_id,
+        promo_id,
+        appointment_date,
+        appointment_time,
+        end_time,
+        subtotal,
+        vat,
+        total_amount,
+        status,
+        created_at
+    ) VALUES (
+        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?,
+        'confirmed',
+        NOW()
+    )
+");
     $insert->execute([
-        $user_id, $treatment_id, $package_id, $booking_type,
-        $therapist_id, $room_id,
-        $appointment_date, $appointment_time,
-        $promotion_id, $use_membership ? 1 : 0,
-        $service_price, $room_fee, $discount, $membership_discount,
-        $subtotal, $vat, $total,
+        $user_id,
+        $therapist_id,
+        $room_id,
+        $treatment_id,
+        $package_id,
+        $promotion_id,
+        $appointment_date,
+        $appointment_time,
+        $end_time,
+        $subtotal,
+        $vat,
+        $total
     ]);
 
     $appointment_id = $pdo->lastInsertId();
@@ -293,24 +338,24 @@ $email_body     = "
 </body>
 </html>
 ";
+// No phpmailer and vendor/autoload.php
+// try {
+//     sendEmail($user_email, $email_subject, $email_body);
+// } catch (Exception $e) {
+//     error_log('Confirmation email failed: ' . $e->getMessage());
+//     // Don't block booking for email failure
+// }
 
-try {
-    sendEmail($user_email, $email_subject, $email_body);
-} catch (Exception $e) {
-    error_log('Confirmation email failed: ' . $e->getMessage());
-    // Don't block booking for email failure
-}
+// /* ─── Send Notification to Admin ─── */
+// $admin_email   = ADMIN_EMAIL ?? 'admin@yourspa.com';
+// $admin_subject = "New Booking #{$appointment_id} — {$user_name}";
+// $admin_body    = "New booking received.\n\nRef: #{$appointment_id}\nUser: {$user_name}\nService: {$service_name}\nDate: {$formatted_date} at {$formatted_time}\nTherapist: {$therapist_name}\nRoom: {$room['room_name']}\nTotal: ₱".number_format($total,2);
 
-/* ─── Send Notification to Admin ─── */
-$admin_email   = ADMIN_EMAIL ?? 'admin@yourspa.com';
-$admin_subject = "New Booking #{$appointment_id} — {$user_name}";
-$admin_body    = "New booking received.\n\nRef: #{$appointment_id}\nUser: {$user_name}\nService: {$service_name}\nDate: {$formatted_date} at {$formatted_time}\nTherapist: {$therapist_name}\nRoom: {$room['room_name']}\nTotal: ₱".number_format($total,2);
-
-try {
-    sendEmail($admin_email, $admin_subject, $admin_body, false); // plain text to admin
-} catch (Exception $e) {
-    error_log('Admin notification email failed: ' . $e->getMessage());
-}
+// try {
+//     sendEmail($admin_email, $admin_subject, $admin_body, false); // plain text to admin
+// } catch (Exception $e) {
+//     error_log('Admin notification email failed: ' . $e->getMessage());
+// }
 
 /* ─── Redirect to success ─── */
 $_SESSION['booking_success'] = [

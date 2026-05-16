@@ -8,14 +8,29 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 // Handle disabling a date
+
 if (isset($_POST['disable_date_btn'])) {
-    $date = $_POST['disabled_date'];
-    $remarks = $_POST['remarks'];
-    $stmt = $pdo->prepare("INSERT INTO disabled_dates (disabled_date, remarks) VALUES (?, ?)");
-    $stmt->execute([$date, $remarks]);
-    header("Location: manage_appointment.php?success=1");
-    exit();
+    header('Content-Type: application/json');
+    try {
+        $date    = $_POST['disabled_date'];
+        $remarks = $_POST['remarks'];
+
+        $stmt = $pdo->prepare("INSERT INTO disabled_dates (disabled_date, remarks) VALUES (?, ?)");
+        $stmt->execute([$date, $remarks]);
+
+        echo json_encode([
+            "status"  => "success",
+            "message" => "Date disabled successfully"
+        ]);
+    } catch (Exception $e) {
+        echo json_encode([
+            "status"  => "error",
+            "message" => $e->getMessage()
+        ]);
+    }
+    exit;
 }
+
 
 // Filter logic
 $filter_date = isset($_GET['filter_date']) ? $_GET['filter_date'] : date('Y-m-d');
@@ -72,6 +87,7 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             .main-content { margin-left: 0; }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -177,7 +193,7 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
 <div class="modal fade" id="disableDateModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
-            <form action="" method="POST">
+            <form id="disableDateForm" action="" method="POST">
                 <div class="modal-header border-0">
                     <h5 class="modal-title fw-bold">Disable Specific Date</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -194,7 +210,7 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" name="disable_date_btn" class="btn btn-danger rounded-pill px-4">Disable Date</button>
+                    <button type="button" class="btn btn-danger rounded-pill px-4" onclick="disableDate()">Disable Date</button>
                 </div>
             </form>
         </div>
@@ -202,5 +218,45 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function disableDate() {
+    const form = document.getElementById('disableDateForm'); // your form ID
+    const formData = new FormData(form);
+    formData.append('disable_date_btn', '1'); // flag for PHP
+
+    fetch(window.location.pathname, {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Disabled!',
+                text: data.message,
+                timer: 1500,
+                showConfirmButton: false
+            });
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: data.message
+            });
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Server Error',
+            text: 'Something went wrong!'
+        });
+        console.error(error);
+    });
+}
+
+</script>
 </body>
-</html>
+</html> 

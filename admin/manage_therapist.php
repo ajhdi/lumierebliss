@@ -8,41 +8,73 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 
-// Handle Edit Therapist Details (Profile only, no password/account creation)
+
 if (isset($_POST['save_therapist'])) {
+    $id = $_POST['therapist_id'];
     $first_name = $_POST['first_name'];
     $middle_name = $_POST['middle_name'];
     $last_name = $_POST['last_name'];
-    $gender = $_POST['gender'];
-    $specialty = $_POST['specialty'];
-    $experience = $_POST['work_experience'];
-    $id = $_POST['therapist_id'];
-    
-    $sql = "UPDATE therapists SET first_name=?, middle_name=?, last_name=?, gender=?, specialty=?, work_experience=? WHERE therapist_id=?";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$first_name, $middle_name, $last_name, $gender, $specialty, $experience, $id]);
+    $gender = $_POST['gender'] ?? ''; 
+    $specialty = $_POST['specialty'] ?? '';
+    $experience = $_POST['work_experience'] ?? '';
+    $status = $_POST['status'];
 
-    // Clear old slots and save 4 new unique slots
-    $pdo->prepare("DELETE FROM therapist_schedule WHERE therapist_id = ?")->execute([$id]);
-    if (isset($_POST['schedule_times'])) {
-        // array_unique prevents duplicate times from being saved
-        $unique_times = array_unique(array_filter($_POST['schedule_times']));
-        $stmt_sched = $pdo->prepare("INSERT INTO therapist_schedule (therapist_id, time_start) VALUES (?, ?)");
-        foreach ($unique_times as $time) {
-            $stmt_sched->execute([$id, $time]);
+
+    $params = [$first_name, $middle_name, $last_name, $gender, $specialty, $experience, $status];
+    $img_sql = "";
+    
+    
+    if (!empty($_FILES['profile_pic']['name'])) {
+        $image_name = time() . '_' . $_FILES['profile_pic']['name'];
+        $target_dir = "../assets/img/therapists/";
+        
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0777, true);
+        }
+
+        if (move_uploaded_file($_FILES['profile_pic']['tmp_name'], $target_dir . $image_name)) {
+            $img_sql = ", profile_picture = ?";
+            $params[] = $image_name;
         }
     }
 
     
+    $params[] = $id; 
+    $sql = "UPDATE therapists SET first_name=?, middle_name=?, last_name=?, gender=?, specialty=?, work_experience=?, status=? $img_sql WHERE therapist_id=?";
     
-    header("Location: manage_therapist.php?msg=Updated");
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+
+
+    $pdo->prepare("DELETE FROM therapist_schedule WHERE therapist_id = ?")->execute([$id]);
+    
+    if ($status === 'active' && isset($_POST['schedule_times'])) {
+        
+        $unique_times = array_unique(array_filter($_POST['schedule_times']));
+        
+      
+        $sched_stmt = $pdo->prepare("INSERT INTO therapist_schedule (therapist_id, time_start) VALUES (?, ?)");
+        
+        foreach ($unique_times as $time) {
+            $sched_stmt->execute([$id, $time]);
+        }
+    }
+
+    header("Location: manage_therapist.php?msg=updated");
     exit();
 }
 
+$stmt = $pdo->query("SELECT * FROM therapists ORDER BY last_name ASC");
+$therapists = $stmt->fetchAll();
 
-// Fetch Active Therapists
-$therapists = $pdo->query("SELECT * FROM therapists WHERE status = 'active' ORDER BY last_name ASC")->fetchAll();
+
+$sched_stmt = $pdo->query("SELECT therapist_id, time_start FROM therapist_schedule ORDER BY time_start ASC");
+$all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
 ?>
+
+
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -104,79 +136,128 @@ $therapists = $pdo->query("SELECT * FROM therapists WHERE status = 'active' ORDE
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead>
-                    <tr class="text-muted small">
-                        <th>NAME</th>
-                        <th>SPECIALTY</th>
-                        <th>GENDER</th>
-                        <th>STATUS</th>
-                        <th class="text-end">ACTIONS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($therapists as $t): ?>
-                    <tr>
-                        <td class="fw-bold"><?= $t['first_name'].' '.$t['last_name'] ?></td>
-                        <td><?= $t['specialty'] ?></td>
-                        <td><?= $t['gender'] ?></td>
-                        <td><span class="badge bg-success-subtle text-success rounded-pill">Active</span></td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-light rounded-circle" title="View/Edit Details" onclick='editTherapist(<?= json_encode($t) ?>)'><i class="bi bi-pencil"></i></button>
-                            <form action="" method="POST" class="d-inline">
-                                <input type="hidden" name="archive_id" value="<?= $t['therapist_id'] ?>">
-                                <button type="submit" class="btn btn-sm btn-light rounded-circle text-danger" title="Archive" onclick="return confirm('Archive this therapist?')"><i class="bi bi-archive"></i></button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
+    <tr class="text-muted small">
+        <th>NAME</th>
+        <th>SPECIALTY</th>
+        <th>GENDER</th>
+        <th class="text-center">STATUS</th> <th class="text-center">ACTIONS</th> </tr>
+</thead>
+<tbody>
+    <?php foreach ($therapists as $t): ?>
+    <tr>
+        <td class="py-3">
+            <div class="d-flex align-items-center gap-3">
+                <?php 
+                    $photo = (!empty($t['profile_picture'])) ? $t['profile_picture'] : 'default_therapist.png';
+                ?>
+                <img src="../assets/img/therapists/<?= $photo ?>" 
+                     class="rounded-circle border" style="width: 45px; height: 45px; object-fit: cover;">
+                <div>
+                    <div class="fw-bold text-dark"><?= htmlspecialchars($t['first_name'] . ' ' . $t['last_name']) ?></div>
+                    <div class="text-muted small"><?= htmlspecialchars($t['specialty']) ?></div>
+                </div>
+            </div>
+        </td>
+        <td><?= htmlspecialchars($t['specialty']) ?></td>
+        <td><?= htmlspecialchars($t['gender']) ?></td>
+        <td class="text-center">
+            <?php if($t['status'] == 'active'): ?>
+                <span class="badge bg-success-subtle text-success rounded-pill border border-success-subtle px-3">Active</span>
+            <?php else: ?>
+                <span class="badge bg-danger-subtle text-danger rounded-pill border border-danger-subtle px-3">Inactive</span>
+            <?php endif; ?>
+        </td>
+        <td class="text-center">
+            <button class="btn btn-sm btn-light rounded-circle border shadow-sm" 
+        onclick='editTherapist(<?= json_encode($t) ?>, <?= json_encode($all_schedules[$t['therapist_id']] ?? []) ?>)'>
+    <i class="bi bi-pencil-square text-primary"></i>
+</button>
+        </td>
+    </tr>
+    <?php endforeach; ?>
+</tbody>
             </table>
         </div>
     </div>
 </div>
 
-<!-- Edit Therapist Modal (Profile Info Only) -->
-<div class="modal fade" id="therapistModal" tabindex="-1">
+ <div class="modal fade" id="therapistModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
-            <form action="" method="POST" id="therapistForm">
+            <form action="manage_therapist.php" method="POST" enctype="multipart/form-data" id="therapistForm">
                 <div class="modal-header border-0 px-4 pt-4">
-                    <h5 class="modal-title fw-bold">Edit Therapist Profile</h5>
+                    <h5 class="modal-title fw-bold" id="modalTitle">Therapist Profile</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body px-4">
                     <input type="hidden" name="therapist_id" id="therapist_id">
+                    
+                    <div class="text-center mb-4">
+                        <img id="profilePreview" src="../assets/img/therapists/default_therapist.png" 
+                             class="rounded-circle border shadow-sm" style="width: 120px; height: 120px; object-fit: cover;">
+                        <div class="mt-2">
+                            <label class="btn btn-sm btn-outline-primary rounded-pill">
+                                Change Photo <input type="file" name="profile_pic" class="d-none" onchange="previewImage(this)">
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="row g-3">
-                        <div class="col-md-4"><label class="form-label small fw-bold">First Name</label><input type="text" name="first_name" id="f_name" class="form-control" required></div>
-                        <div class="col-md-4"><label class="form-label small fw-bold">Middle Name</label><input type="text" name="middle_name" id="m_name" class="form-control"></div>
-                        <div class="col-md-4"><label class="form-label small fw-bold">Last Name</label><input type="text" name="last_name" id="l_name" class="form-control" required></div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Gender</label>
-                            <select name="gender" id="gender" class="form-select">
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
-                            </select>
+                            <label class="form-label small fw-bold">Username</label>
+                            <input type="text" id="username" class="form-control bg-light" readonly>
+                            <small class="text-muted">Username cannot be changed.</small>
                         </div>
-                        <div class="col-md-6"><label class="form-label small fw-bold">Specialty</label><input type="text" name="specialty" id="specialty" class="form-control" required></div>
-                        <div class="col-12"><label class="form-label small fw-bold">Work Experience</label><textarea name="work_experience" id="experience" class="form-control" rows="4"></textarea></div>
-
-                        <div class="col-12 mt-3">
-                        <label class="form-label small fw-bold text-uppercase" style="color: var(--accent-gold);">Daily Schedule (4 Slots)</label>
-                        <div class="row g-2">
-                            <div class="col-3"><input type="time" name="schedule_times[]" class="form-control sched-input"></div>
-                            <div class="col-3"><input type="time" name="schedule_times[]" class="form-control sched-input"></div>
-                            <div class="col-3"><input type="time" name="schedule_times[]" class="form-control sched-input"></div>
-                            <div class="col-3"><input type="time" name="schedule_times[]" class="form-control sched-input"></div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-primary">Account Status</label>
+                            <select name="status" id="status" class="form-select" onchange="toggleScheduleDisability()">
+    <option value="active">Active</option>
+    <option value="inactive">Inactive</option>
+</select>
                         </div>
-                    </div>
 
-                    </div>
-                    <div class="alert alert-info mt-3 py-2 small">
-                        <i class="bi bi-info-circle me-2"></i> Account credentials (username/password) are managed in <b>Manage Accounts</b>.
-                    </div>
-                </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">First Name</label>
+                            <input type="text" name="first_name" id="first_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Middle Name</label>
+                            <input type="text" name="middle_name" id="middle_name" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Last Name</label>
+                            <input type="text" name="last_name" id="last_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+    <label class="form-label">Gender</label>
+    <select name="gender" id="gender" class="form-select">
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+    </select>
+</div>
+
+<div class="col-md-6">
+    <label class="form-label">Specialty</label>
+    <input type="text" name="specialty" id="specialty" class="form-control" required>
+</div>
+
+<div class="col-12">
+    <label class="form-label">Work Experience</label>
+    <textarea name="work_experience" id="work_experience" class="form-control" rows="2"></textarea>
+</div>
+                        <div class="col-12 mt-4">
+                            <h6 class="fw-bold border-bottom pb-2 mb-3">Daily Time Schedule</h6>
+                            <div class="row g-2">
+                                <?php for($i=0; $i<4; $i++): ?>
+                                <div class="col-md-3">
+                                    <input type="time" name="schedule_times[]" class="form-control schedule-input">
+                                </div>
+                                <?php endfor; ?>
+                            </div>
+                        </div>
+                    </div> 
+                </div> 
                 <div class="modal-footer border-0 px-4 pb-4">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" name="save_therapist" class="btn btn-dark rounded-pill px-4">Save Changes</button>
                 </div>
             </form>
@@ -184,32 +265,93 @@ $therapists = $pdo->query("SELECT * FROM therapists WHERE status = 'active' ORDE
     </div>
 </div>
 
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-function editTherapist(data) {
+
+function editTherapist(data, schedules) {
+    
     document.getElementById('therapist_id').value = data.therapist_id;
-    document.getElementById('f_name').value = data.first_name;
-    document.getElementById('m_name').value = data.middle_name;
-    document.getElementById('l_name').value = data.last_name;
+    document.getElementById('username').value = data.username || 'N/A';
+    document.getElementById('first_name').value = data.first_name;
+    document.getElementById('middle_name').value = data.middle_name || '';
+    document.getElementById('last_name').value = data.last_name;
     document.getElementById('gender').value = data.gender;
     document.getElementById('specialty').value = data.specialty;
-    document.getElementById('experience').value = data.work_experience;
-    // Fetch and fill the 4 schedule slots
-    const inputs = document.querySelectorAll('.sched-input');
-    inputs.forEach(input => input.value = ''); // Reset first
+    document.getElementById('work_experience').value = data.work_experience;
+    document.getElementById('status').value = data.status;
+
+   
+    const preview = document.getElementById('profilePreview');
+    if (data.profile_picture && data.profile_picture !== 'default_therapist.png') {
+        preview.src = "../assets/img/therapists/" + data.profile_picture;
+    } else {
+        preview.src = "../assets/img/therapists/default_therapist.png";
+    }
+
     
-    fetch(`get_schedules.php?id=${data.therapist_id}`)
-        .then(res => res.json())
-        .then(slots => {
-            slots.forEach((slot, index) => {
-                if(inputs[index]) inputs[index].value = slot.time_start;
-            });
-        });
+    const slots = document.querySelectorAll('.schedule-input');
+    slots.forEach((input, index) => {
+        
+        input.value = (schedules && schedules[index]) ? schedules[index].time_start : "";
+    });
+
+   
+    toggleScheduleDisability();
+
+    var therapistModal = new bootstrap.Modal(document.getElementById('therapistModal'));
+    therapistModal.show();
+}
+
+function toggleScheduleDisability() {
+    const status = document.getElementById('status').value;
+    const inputs = document.querySelectorAll('.schedule-input');
     
-    var myModal = new bootstrap.Modal(document.getElementById('therapistModal'));
-    myModal.show();
+    inputs.forEach(input => {
+        if (status === 'inactive') {
+            input.disabled = true;
+            input.classList.add('bg-light');
+        } else {
+            input.disabled = false;
+            input.classList.remove('bg-light');
+        }
+    });
+}
+
+
+document.getElementById('therapistForm').addEventListener('submit', function(e) {
+    if (document.getElementById('status').value === 'inactive') return;
+
+    const inputs = document.querySelectorAll('.schedule-input');
+    const times = [];
+    inputs.forEach(i => { if(i.value) times.push(i.value); });
+
+    for (let i = 0; i < times.length; i++) {
+        for (let j = i + 1; j < times.length; j++) {
+            const [h1, m1] = times[i].split(':').map(Number);
+            const [h2, m2] = times[j].split(':').map(Number);
+            const diff = Math.abs((h1 * 60 + m1) - (h2 * 60 + m2));
+
+            if (diff < 60) {
+                e.preventDefault();
+                alert("Error: There must be at least a 1-hour interval between schedule slots.");
+                return;
+            }
+        }
+    }
+});
+
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('profilePreview').src = e.target.result;
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
 }
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>

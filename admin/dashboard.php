@@ -10,7 +10,7 @@ if (!isset($_SESSION['admin_id'])) {
 
 // 1. ANALYTICS: Basic Counts
 $therapist_count = $pdo->query("SELECT COUNT(*) FROM therapists WHERE status='active'")->fetchColumn();
-$room_count = $pdo->query("SELECT COUNT(*) FROM rooms WHERE status='active'")->fetchColumn();
+$room_count = $pdo->query("SELECT COUNT(*) FROM rooms WHERE status='available'")->fetchColumn();
 $confirmed_count = $pdo->query("SELECT COUNT(*) FROM appointments WHERE status='confirmed'")->fetchColumn();
 
 // 2. ANALYTICS: Completed Appointments (Current Month)

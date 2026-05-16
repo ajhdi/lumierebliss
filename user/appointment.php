@@ -18,7 +18,7 @@ $user = $u_stmt->fetch();
 $treatments = $pdo->query("SELECT * FROM treatments WHERE status = 'available' ORDER BY name")->fetchAll();
 
 // Packages (active only)
-//$packages = $pdo->query("SELECT * FROM packages WHERE status = 'active' ORDER BY name")->fetchAll();
+$packages = $pdo->query("SELECT * FROM packages WHERE status = 'available' ORDER BY name")->fetchAll();
 
 // Therapists (active only)
 $therapists = $pdo->query("SELECT * FROM therapists WHERE status = 'active' ORDER BY first_name")->fetchAll();
@@ -34,6 +34,13 @@ $rooms = $pdo->query("SELECT * FROM rooms ORDER BY room_name")->fetchAll();
 
 // Pre-fill from GET
 $sel_tid = $_GET['treatment_id'] ?? '';
+$disabled_dates = [];
+
+$stmt = $pdo->query("SELECT disabled_date, remarks FROM disabled_dates");
+
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $disabled_dates[$row['disabled_date']] = $row['remarks'];
+}
 ?>
 
 <!DOCTYPE html>
@@ -646,6 +653,7 @@ input[type="hidden"] {}
   .step-dot .label { display: none; }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -1126,8 +1134,12 @@ function selectService(type, id, name, price, el) {
 /* ═══════════════════════════════════════
    DATE & TIME
 ═══════════════════════════════════════ */
+const disabledDates = <?= json_encode($disabled_dates) ?>;
+
+
 function onDateChange() {
   const date = document.getElementById('sel_date').value;
+
   state.date = date;
   state.time = '';
   document.getElementById('h_date').value = date;
@@ -1135,29 +1147,61 @@ function onDateChange() {
   if (!date) return;
 
   const wrap = document.getElementById('time-slots-wrap');
+
+  // CHECK DISABLED DATE
+  if (disabledDates[date]) {
+
+    Swal.fire({
+      icon: 'warning',
+      title: 'Date Unavailable',
+      html: `
+        <b>${date}</b> is unavailable.<br><br>
+        <b>Reason:</b><br>
+        ${disabledDates[date]}
+      `
+    });
+
+    // Clear selected date
+    document.getElementById('sel_date').value = '';
+
+    state.date = '';
+    document.getElementById('h_date').value = '';
+
+    wrap.innerHTML = '<span class="time-slot-loader">Select a date first.</span>';
+
+    return;
+  }
+
   wrap.innerHTML = '<span class="time-slot-loader">Checking availability…</span>';
 
   fetch(`check_availability.php?date=${date}`)
     .then(r => r.json())
     .then(res => {
       const available = res.available_times || [];
+
       if (!available.length) {
         wrap.innerHTML = '<span class="time-slot-loader" style="color:#c0392b;">No slots available on this date.</span>';
         return;
       }
+
       wrap.innerHTML = '';
+
       available.forEach(slot => {
         const btn = document.createElement('div');
+
         btn.className = 'time-slot' + (slot.booked ? ' booked' : '');
+
         btn.textContent = slot.time.substring(0,5);
+
         if (!slot.booked) {
           btn.onclick = () => selectTime(slot.time, btn);
         }
+
         wrap.appendChild(btn);
       });
     })
     .catch(() => {
-      // Fallback: show default time slots if API not yet set up
+      // Fallback
       renderDefaultTimes(wrap);
     });
 }

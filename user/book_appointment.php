@@ -18,7 +18,7 @@ $user = $u_stmt->fetch();
 $treatments = $pdo->query("SELECT * FROM treatments WHERE status = 'available' ORDER BY name")->fetchAll();
 
 // Packages (active only)
-//$packages = $pdo->query("SELECT * FROM packages WHERE status = 'active' ORDER BY name")->fetchAll();
+$packages = $pdo->query("SELECT * FROM packages WHERE status = 'available' ORDER BY name")->fetchAll();
 
 // Therapists (active only)
 $therapists = $pdo->query("SELECT * FROM therapists WHERE status = 'active' ORDER BY first_name")->fetchAll();

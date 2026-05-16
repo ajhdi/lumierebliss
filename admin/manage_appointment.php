@@ -259,4 +259,4 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
 
 </script>
 </body>
-</html>
+</html> 

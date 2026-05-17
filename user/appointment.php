@@ -24,7 +24,32 @@ $packages = $pdo->query("SELECT * FROM packages WHERE status = 'available' ORDER
 $therapists = $pdo->query("SELECT * FROM therapists WHERE status = 'active' ORDER BY first_name")->fetchAll();
 
 // Rooms (available, filtered later by day)
-$rooms = $pdo->query("SELECT * FROM rooms ORDER BY room_name")->fetchAll();
+// Check membership/account type
+if ($user['account_type'] === 'non_member') {
+
+    // Only show standard rooms
+    $room_stmt = $pdo->prepare("
+        SELECT * 
+        FROM rooms 
+        WHERE room_type = 'Standard Room'
+        ORDER BY room_name
+    ");
+
+    $room_stmt->execute();
+
+} else {
+
+    // Show all rooms for members
+    $room_stmt = $pdo->prepare("
+        SELECT * 
+        FROM rooms 
+        ORDER BY room_name
+    ");
+
+    $room_stmt->execute();
+}
+
+$rooms = $room_stmt->fetchAll();
 
 // Add-ons (info only)
 //$addons = $pdo->query("SELECT * FROM addons ORDER BY name")->fetchAll();

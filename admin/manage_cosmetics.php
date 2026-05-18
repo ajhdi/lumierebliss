@@ -613,6 +613,13 @@ try {
         @media (max-width: 991px) {
             .main-content { margin-left: 0; padding: 28px 20px; }
         }
+        .gold-rule {
+            width: 48px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--gold), var(--gold-light));
+            border-radius: 2px;
+            margin-bottom: 36px;
+        }
     </style>
 </head>
 <body>
@@ -634,9 +641,11 @@ try {
         <div class="page-header-left">
             <div class="eyebrow">Lumière &amp; Bliss Studio</div>
             <h1>Cosmetics Inventory</h1>
-            <p>Manage your retail products, oils, and spa accessories.</p>
+            <div class="gold-rule"></div>
         </div>
+        
     </div>
+        
 
     <!-- Toolbar -->
     <div class="section-toolbar">

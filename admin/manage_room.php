@@ -668,7 +668,7 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
             <div class="col-md-4">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
-                    <option value="">All Statuses</option>
+                    <option value="">All Status</option>
                     <?php foreach ($statuses as $s): ?>
                         <option value="<?= htmlspecialchars($s['status']) ?>"
                             <?= $status_filter == $s['status'] ? 'selected' : '' ?>>
@@ -887,12 +887,37 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
 
     // ── Live search (unchanged logic) ─────────────────────────────
     document.getElementById('roomSearch').addEventListener('keyup', function () {
-        const search = this.value.toLowerCase();
-        document.querySelectorAll('#roomTable tbody tr').forEach(row => {
-            const name = row.querySelector('.room-name');
-            row.style.display = name && name.textContent.toLowerCase().includes(search) ? '' : 'none';
-        });
+    const search = this.value.toLowerCase();
+    const rows   = document.querySelectorAll('#roomTable tbody tr:not(#noSearchResult)');
+    let visible  = 0;
+
+    rows.forEach(row => {
+        const name = row.querySelector('.room-name');
+        const show = name && name.textContent.toLowerCase().includes(search);
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
     });
+
+    let noResult = document.getElementById('noSearchResult');
+    if (visible === 0) {
+        if (!noResult) {
+            noResult = document.createElement('tr');
+            noResult.id = 'noSearchResult';
+            noResult.innerHTML = `<td colspan="5">
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="bi bi-search"></i></div>
+                    <div class="empty-state-text">No rooms match "<strong>${this.value}</strong>"</div>
+                </div></td>`;
+            document.querySelector('#roomTable tbody').appendChild(noResult);
+        } else {
+            noResult.querySelector('.empty-state-text').innerHTML =
+                `No rooms match "<strong>${this.value}</strong>"`;
+            noResult.style.display = '';
+        }
+    } else if (noResult) {
+        noResult.style.display = 'none';
+    }
+});
 </script>
 </body>
 </html>

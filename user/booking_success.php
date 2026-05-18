@@ -83,7 +83,7 @@ h1 em { font-style: italic; color: var(--gold); }
   </div>
 
   <div class="notice">
-    💳 <strong>Payment on-site.</strong> Please arrive 10 minutes early. Bring this reference number or check your email.
+    <strong>Payment on-site.</strong> Please arrive 10 minutes early. Bring this reference number or check your email.
   </div>
 
   <a href="index.php" class="btn-home">Back to Home</a>

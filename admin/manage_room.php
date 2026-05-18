@@ -728,7 +728,8 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
                             <td>
                                 <?php
                                     $s = strtolower($r['status']);
-                                    $cls = $s === 'available' ? 'badge-available' : ($s === 'archived' ? 'badge-archived' : 'badge-other');
+                                    $cls = ($s === 'active' || $s === 'available') ? 'badge-available'
+                                    : ($s === 'archived' ? 'badge-archived' : 'badge-other');
                                 ?>
                                 <span class="badge-status <?= $cls ?>"><?= ucfirst(htmlspecialchars($r['status'])) ?></span>
                             </td>

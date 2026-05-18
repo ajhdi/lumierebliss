@@ -344,6 +344,27 @@ $display_peak = $peak_time ? date("g:i A", strtotime($peak_time['hour'] . ":00")
         .stat-card:nth-child(4) { animation-delay: .26s; }
         .revenue-card  { animation: fadeUp .5s .3s ease both; }
         .insights-card { animation: fadeUp .5s .38s ease both; }
+
+        /* ─── Custom Scrollbar ───────────────────────────────────────── */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--cream);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--gold-light);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--gold);
+        }
+
+        /* ─── Sidebar Scrollbar Override ────────────────────────────── */
+        .sidebar-nav::-webkit-scrollbar {
+            width: 0px;
+        }
+
     </style>
 </head>
 <body>

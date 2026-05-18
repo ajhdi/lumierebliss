@@ -10,7 +10,7 @@ if (!isset($_SESSION['admin_id'])) {
 
 // 1. ANALYTICS: Basic Counts
 $therapist_count = $pdo->query("SELECT COUNT(*) FROM therapists WHERE status='active'")->fetchColumn();
-$room_count = $pdo->query("SELECT COUNT(*) FROM rooms WHERE status='available'")->fetchColumn();
+$room_count      = $pdo->query("SELECT COUNT(*) FROM rooms WHERE status='available'")->fetchColumn();
 $confirmed_count = $pdo->query("SELECT COUNT(*) FROM appointments WHERE status='confirmed'")->fetchColumn();
 
 // 2. ANALYTICS: Completed Appointments (Current Month)
@@ -18,7 +18,7 @@ $completed_month = $pdo->query("SELECT COUNT(*) FROM appointments WHERE status='
 
 // 3. REPORTS: Estimated Revenue (Confirmed + Completed)
 $revenue_query = $pdo->query("SELECT SUM(total_amount) FROM appointments WHERE status != 'cancelled'")->fetchColumn();
-$est_revenue = $revenue_query ? number_format($revenue_query, 2) : "0.00";
+$est_revenue   = $revenue_query ? number_format($revenue_query, 2) : "0.00";
 
 // 4. REPORTS: Most Booked Service
 $popular_service = $pdo->query("
@@ -85,106 +85,6 @@ $display_peak = $peak_time ? date("g:i A", strtotime($peak_time['hour'] . ":00")
             min-height: 100vh;
             overflow-x: hidden;
         }
-
-        /* ─── Sidebar ───────────────────────────────────────────────── */
-        .sidebar {
-            position: fixed;
-            inset: 0 auto 0 0;
-            width: var(--sidebar-w);
-            background: var(--dark);
-            display: flex;
-            flex-direction: column;
-            z-index: 1000;
-            transition: transform .35s cubic-bezier(.4,0,.2,1);
-        }
-
-        /* Subtle gold grain overlay on sidebar */
-        .sidebar::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(ellipse at 30% 20%, rgba(201,169,110,0.07) 0%, transparent 60%);
-            pointer-events: none;
-        }
-
-        /* Brand lockup */
-        .sidebar-brand {
-            padding: 36px 28px 28px;
-            border-bottom: 1px solid var(--border);
-        }
-        .sidebar-brand-label {
-            font-family: 'Cormorant Garamond', serif;
-            font-weight: 300;
-            font-size: 1.55rem;
-            color: var(--white);
-            letter-spacing: .08em;
-            line-height: 1.1;
-        }
-        .sidebar-brand-label em {
-            font-style: italic;
-            color: var(--gold);
-        }
-        .sidebar-brand-sub {
-            font-size: .7rem;
-            font-weight: 500;
-            letter-spacing: .18em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin-top: 4px;
-        }
-
-        /* Nav items */
-        .sidebar-nav {
-            flex: 1;
-            padding: 24px 0;
-            overflow-y: auto;
-        }
-        .nav-section-label {
-            font-size: .65rem;
-            font-weight: 700;
-            letter-spacing: .2em;
-            text-transform: uppercase;
-            color: var(--muted);
-            padding: 16px 28px 8px;
-        }
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 13px;
-            padding: 13px 28px;
-            color: rgba(255,255,255,.5);
-            font-size: .88rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: color .2s, background .2s;
-            position: relative;
-            border-left: 3px solid transparent;
-        }
-        .nav-item i {
-            font-size: 1.05rem;
-            width: 20px;
-            text-align: center;
-            flex-shrink: 0;
-        }
-        .nav-item:hover {
-            color: var(--gold-light);
-            background: rgba(201,169,110,.06);
-            border-left-color: rgba(201,169,110,.4);
-        }
-        .nav-item.active {
-            color: var(--gold);
-            background: rgba(201,169,110,.1);
-            border-left-color: var(--gold);
-        }
-        .nav-item.active i { color: var(--gold); }
-
-        /* Logout at bottom */
-        .sidebar-footer {
-            padding: 20px 0 28px;
-            border-top: 1px solid var(--border);
-        }
-        .nav-item.danger { color: rgba(220,80,80,.7); }
-        .nav-item.danger:hover { color: #e05555; background: rgba(220,80,80,.07); border-left-color: #e05555; }
 
         /* ─── Main Content ──────────────────────────────────────────── */
         .main-content {
@@ -340,8 +240,7 @@ $display_peak = $peak_time ? date("g:i A", strtotime($peak_time['hour'] . ":00")
             content: '';
             position: absolute;
             top: -80px; right: -80px;
-            width: 320px;
-            height: 320px;
+            width: 320px; height: 320px;
             background: radial-gradient(circle, rgba(201,169,110,0.12) 0%, transparent 70%);
             pointer-events: none;
         }
@@ -351,60 +250,35 @@ $display_peak = $peak_time ? date("g:i A", strtotime($peak_time['hour'] . ":00")
             font-size: 18rem;
             color: rgba(201,169,110,0.04);
             position: absolute;
-            top: -60px;
-            left: 24px;
+            top: -60px; left: 24px;
             line-height: 1;
             pointer-events: none;
             user-select: none;
         }
-
         .revenue-eyebrow {
-            font-size: .68rem;
-            font-weight: 700;
-            letter-spacing: .2em;
-            text-transform: uppercase;
-            color: var(--gold);
-            margin-bottom: 12px;
+            font-size: .68rem; font-weight: 700;
+            letter-spacing: .2em; text-transform: uppercase;
+            color: var(--gold); margin-bottom: 12px;
         }
         .revenue-title {
             font-family: 'Cormorant Garamond', serif;
-            font-weight: 600;
-            font-size: 1.8rem;
-            color: var(--white);
-            margin-bottom: 28px;
+            font-weight: 600; font-size: 1.8rem;
+            color: var(--white); margin-bottom: 28px;
         }
         .revenue-amount {
             font-family: 'Cormorant Garamond', serif;
-            font-weight: 300;
-            font-size: 4rem;
-            color: var(--white);
-            line-height: 1;
+            font-weight: 300; font-size: 4rem;
+            color: var(--white); line-height: 1;
         }
-        .revenue-amount sup {
-            font-size: 1.6rem;
-            vertical-align: super;
-            color: var(--gold);
-        }
+        .revenue-amount sup { font-size: 1.6rem; vertical-align: super; color: var(--gold); }
         .revenue-sub {
-            font-size: .78rem;
-            color: var(--gold-light);
-            margin-top: 8px;
-            opacity: .7;
-            font-weight: 500;
-            letter-spacing: .06em;
+            font-size: .78rem; color: var(--gold-light);
+            margin-top: 8px; opacity: .7; font-weight: 500; letter-spacing: .06em;
         }
-        .revenue-divider {
-            border: none;
-            border-top: 1px solid rgba(201,169,110,.2);
-            margin: 28px 0;
-        }
+        .revenue-divider { border: none; border-top: 1px solid rgba(201,169,110,.2); margin: 28px 0; }
         .revenue-note {
-            font-size: .8rem;
-            color: rgba(255,255,255,.4);
-            display: flex;
-            align-items: flex-start;
-            gap: 9px;
-            line-height: 1.5;
+            font-size: .8rem; color: rgba(255,255,255,.4);
+            display: flex; align-items: flex-start; gap: 9px; line-height: 1.5;
         }
         .revenue-note i { color: var(--gold); margin-top: 2px; flex-shrink: 0; }
 
@@ -415,97 +289,41 @@ $display_peak = $peak_time ? date("g:i A", strtotime($peak_time['hour'] . ":00")
             padding: 36px 32px;
             box-shadow: var(--shadow);
             border: 1px solid rgba(201,169,110,.1);
-            display: flex;
-            flex-direction: column;
+            display: flex; flex-direction: column;
         }
         .insights-title {
             font-family: 'Cormorant Garamond', serif;
-            font-weight: 600;
-            font-size: 1.5rem;
-            color: var(--dark);
-            margin-bottom: 28px;
+            font-weight: 600; font-size: 1.5rem;
+            color: var(--dark); margin-bottom: 28px;
         }
-        .insight-item {
-            padding: 18px 0;
-            border-bottom: 1px solid rgba(201,169,110,.12);
-        }
+        .insight-item { padding: 18px 0; border-bottom: 1px solid rgba(201,169,110,.12); }
         .insight-item:last-of-type { border-bottom: none; }
         .insight-label {
-            font-size: .65rem;
-            font-weight: 700;
-            letter-spacing: .2em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin-bottom: 6px;
+            font-size: .65rem; font-weight: 700;
+            letter-spacing: .2em; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 6px;
         }
-        .insight-value {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--dark);
-        }
+        .insight-value { font-size: 1rem; font-weight: 600; color: var(--dark); }
         .insight-value.empty { color: var(--muted); font-weight: 400; font-style: italic; }
 
-        .btn-report {
-            margin-top: auto;
-            padding-top: 28px;
-        }
+        .btn-report { margin-top: auto; padding-top: 28px; }
         .btn-report a {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 13px 0;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 13px 0;
             background: transparent;
             border: 1.5px solid var(--gold);
             border-radius: 50px;
             color: var(--dark);
-            font-size: .82rem;
-            font-weight: 600;
-            letter-spacing: .08em;
+            font-size: .82rem; font-weight: 600; letter-spacing: .08em;
             text-decoration: none;
             transition: background .22s, color .22s;
         }
-        .btn-report a:hover {
-            background: var(--gold);
-            color: var(--white);
-        }
+        .btn-report a:hover { background: var(--gold); color: var(--white); }
 
-        /* ─── Mobile ─────────────────────────────────────────────────── */
-        .mobile-toggle {
-            display: none;
-            position: fixed;
-            top: 18px;
-            left: 18px;
-            z-index: 1100;
-            background: var(--dark);
-            border: 1px solid var(--border);
-            color: var(--gold);
-            width: 42px;
-            height: 42px;
-            border-radius: 10px;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            cursor: pointer;
-        }
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,.55);
-            z-index: 999;
-        }
-
-        @media (max-width: 1200px) {
-            .stat-grid { grid-template-columns: repeat(2, 1fr); }
-        }
+        /* ─── Responsive ─────────────────────────────────────────────── */
+        @media (max-width: 1200px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 991px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0; padding: 80px 24px 40px; }
-            .mobile-toggle { display: flex; }
-            .sidebar-overlay.visible { display: block; }
             .bottom-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 600px) {
@@ -530,56 +348,7 @@ $display_peak = $peak_time ? date("g:i A", strtotime($peak_time['hour'] . ":00")
 </head>
 <body>
 
-<!-- Mobile Toggle -->
-<button class="mobile-toggle" id="mobileToggle" aria-label="Open menu">
-    <i class="bi bi-list"></i>
-</button>
-
-<!-- Overlay -->
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-<!-- ── Sidebar ─────────────────────────────────────────────────────── -->
-<nav class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-        <div class="sidebar-brand-label">Lumiére <em>&amp;</em> Bliss</div>
-        <div class="sidebar-brand-sub">Administration Console</div>
-    </div>
-
-    <div class="sidebar-nav">
-        <div class="nav-section-label">Overview</div>
-        <a href="dashboard.php" class="nav-item active">
-            <i class="bi bi-grid-1x2"></i> Dashboard
-        </a>
-
-        <div class="nav-section-label">Management</div>
-        <a href="manage_appointment.php" class="nav-item">
-            <i class="bi bi-calendar-event"></i> Appointments
-        </a>
-        <a href="manage_treatments.php" class="nav-item">
-            <i class="bi bi-droplet-half"></i> Treatments
-        </a>
-        <a href="manage_therapist.php" class="nav-item">
-            <i class="bi bi-person-badge"></i> Therapists
-        </a>
-        <a href="manage_room.php" class="nav-item">
-            <i class="bi bi-door-open"></i> Rooms
-        </a>
-        <a href="manage_account.php" class="nav-item">
-            <i class="bi bi-people"></i> Accounts
-        </a>
-
-        <div class="nav-section-label">System</div>
-        <a href="system_logs.php" class="nav-item">
-            <i class="bi bi-shield-lock"></i> Audit Logs
-        </a>
-    </div>
-
-    <div class="sidebar-footer">
-        <a href="logout.php" class="nav-item danger">
-            <i class="bi bi-box-arrow-right"></i> Sign Out
-        </a>
-    </div>
-</nav>
+<?php require_once '../includes/sidebar.php'; ?>
 
 <!-- ── Main Content ────────────────────────────────────────────────── -->
 <div class="main-content">
@@ -641,14 +410,9 @@ $display_peak = $peak_time ? date("g:i A", strtotime($peak_time['hour'] . ":00")
         <div class="revenue-card">
             <div class="revenue-eyebrow">Financial Overview</div>
             <div class="revenue-title">Estimated Lifetime Revenue</div>
-
-            <div class="revenue-amount">
-                <sup>₱</sup><?= $est_revenue ?>
-            </div>
+            <div class="revenue-amount"><sup>₱</sup><?= $est_revenue ?></div>
             <div class="revenue-sub">Gross · Confirmed &amp; Completed Appointments</div>
-
             <hr class="revenue-divider">
-
             <div class="revenue-note">
                 <i class="bi bi-info-circle-fill"></i>
                 Revenue is calculated based on confirmed and completed appointments. Cancelled bookings are excluded from this figure.
@@ -658,30 +422,25 @@ $display_peak = $peak_time ? date("g:i A", strtotime($peak_time['hour'] . ":00")
         <!-- Insights Card -->
         <div class="insights-card">
             <div class="insights-title">Quick Insights</div>
-
             <div class="insight-item">
                 <div class="insight-label">Most Booked Service</div>
                 <div class="insight-value <?= $popular_service ? '' : 'empty' ?>">
                     <?= $popular_service ? htmlspecialchars($popular_service['name']) : 'No data yet' ?>
                 </div>
             </div>
-
             <div class="insight-item">
                 <div class="insight-label">Peak Booking Time</div>
                 <div class="insight-value <?= $display_peak === 'N/A' ? 'empty' : '' ?>">
                     <?= htmlspecialchars($display_peak) ?>
                 </div>
             </div>
-
             <div class="btn-report">
-                <a href="reports.php">
-                    View Detailed Reports <i class="bi bi-arrow-right"></i>
-                </a>
+                <a href="reports.php">View Detailed Reports <i class="bi bi-arrow-right"></i></a>
             </div>
         </div>
 
     </div>
-</div>
+</div><!-- /.main-content -->
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -690,20 +449,6 @@ $display_peak = $peak_time ? date("g:i A", strtotime($peak_time['hour'] . ":00")
     const d = new Date();
     document.getElementById('js-date').textContent = d.toLocaleDateString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-    });
-
-    // Mobile sidebar toggle
-    const sidebar  = document.getElementById('sidebar');
-    const overlay  = document.getElementById('sidebarOverlay');
-    const toggle   = document.getElementById('mobileToggle');
-
-    toggle.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
-        overlay.classList.toggle('visible');
-    });
-    overlay.addEventListener('click', () => {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('visible');
     });
 </script>
 </body>

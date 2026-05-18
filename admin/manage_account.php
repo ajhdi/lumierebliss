@@ -233,7 +233,7 @@ $users               = $pdo->query("SELECT * FROM users ORDER BY created_at DESC
             --gold:        #c9a96e;
             --gold-light:  #e8d5b0;
             --gold-dim:    rgba(201,169,110,.13);
-            --dark:        #1a1a1a;
+            --dark:        #0d0d0d;
             --dark-soft:   #2e2e2e;
             --muted:       #8a8070;
             --border:      rgba(201,169,110,.22);

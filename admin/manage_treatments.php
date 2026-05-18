@@ -975,6 +975,13 @@ while ($row = $content_query->fetch(PDO::FETCH_ASSOC)) {
             background: var(--dark-soft);
             box-shadow: 0 6px 20px rgba(26,26,26,0.22);
         }
+        .gold-rule {
+            width: 48px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--gold), var(--gold-light));
+            border-radius: 2px;
+            margin-bottom: 36px;
+        }
     </style>
 </head>
 <body>
@@ -996,7 +1003,7 @@ while ($row = $content_query->fetch(PDO::FETCH_ASSOC)) {
         <div class="page-header-left">
             <div class="eyebrow">Lumière &amp; Bliss Studio</div>
             <h1>Treatment Management</h1>
-            <p>Curate and manage your clinic's offerings and exclusive bundles.</p>
+            <div class="gold-rule"></div>
         </div>
     </div>
 

@@ -64,7 +64,7 @@ $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
             --cream: #fdfbf7;
             --gold: #c9a96e;
             --gold-light: #e8d5b0;
-            --dark: #1a1a1a;
+            --dark: #0d0d0d;
             --dark-soft: #2e2e2e;
             --muted: #8a8070;
             --border: rgba(201,169,110,.22);

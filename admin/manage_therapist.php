@@ -107,72 +107,7 @@ $all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
             overflow-x: hidden;
         }
 
-        /* ─── Sidebar ─────────────────────────────────────────────── */
-        .sidebar {
-            width: var(--sidebar-w);
-            height: 100vh;
-            position: fixed;
-            top: 0; left: 0;
-            background: var(--dark);
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid rgba(201,169,110,.12);
-            transition: transform .35s cubic-bezier(.4,0,.2,1);
-        }
-        .sidebar-brand {
-            padding: 32px 28px 24px;
-            border-bottom: 1px solid rgba(201,169,110,.12);
-        }
-        .sidebar-brand-name {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 1.6rem;
-            font-weight: 600;
-            color: var(--white);
-            line-height: 1;
-        }
-        .sidebar-brand-name span { color: var(--gold); }
-        .sidebar-brand-sub {
-            font-size: .62rem;
-            font-weight: 700;
-            letter-spacing: .22em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin-top: 4px;
-        }
-        .sidebar-nav { flex: 1; padding: 20px 0; overflow-y: auto; }
-        .sidebar-nav-label {
-            font-size: .58rem;
-            font-weight: 700;
-            letter-spacing: .22em;
-            text-transform: uppercase;
-            color: rgba(201,169,110,.4);
-            padding: 8px 28px 6px;
-            display: block;
-        }
-        .nav-link {
-            display: flex;
-            align-items: center;
-            gap: 13px;
-            padding: 12px 28px;
-            color: rgba(255,255,255,.55);
-            font-size: .85rem;
-            font-weight: 500;
-            text-decoration: none;
-            border-left: 3px solid transparent;
-            transition: color .2s, background .2s, border-color .2s;
-        }
-        .nav-link i { font-size: 1rem; width: 18px; flex-shrink: 0; }
-        .nav-link:hover  { color: rgba(255,255,255,.9); background: rgba(255,255,255,.04); }
-        .nav-link.active { color: var(--gold); background: rgba(201,169,110,.08); border-left-color: var(--gold); }
-        .nav-link.text-danger { color: rgba(220,80,80,.7) !important; margin-top: 8px; }
-        .nav-link.text-danger:hover { color: #e05555 !important; background: rgba(220,80,80,.06); }
-        .sidebar-footer {
-            padding: 20px 28px;
-            border-top: 1px solid rgba(201,169,110,.1);
-            font-size: .72rem;
-            color: rgba(255,255,255,.2);
-        }
+        
 
         /* ─── Layout ─────────────────────────────────────────────── */
         .main-content {
@@ -485,9 +420,7 @@ $all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
 
         /* ─── Responsive ─────────────────────────────────────────── */
         @media (max-width: 991px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 32px 20px 48px; }
+            
             .schedule-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 767px) {
@@ -504,40 +437,7 @@ $all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
             .schedule-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
-        /* ─── Sidebar Overlay (mobile) ───────────────────────────── */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(13,13,13,.55);
-            z-index: 999;
-            backdrop-filter: blur(2px);
-            -webkit-backdrop-filter: blur(2px);
-            animation: overlayIn .25s ease both;
-        }
-        .sidebar-overlay.visible { display: block; }
-        @keyframes overlayIn {
-            from { opacity: 0; }
-            to   { opacity: 1; }
-        }
-
-        /* ─── Mobile toggle button ───────────────────────────────── */
-        .mobile-toggle {
-            display: none;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 18px;
-            border: 1.5px solid var(--border);
-            border-radius: 10px;
-            background: var(--white);
-            color: var(--dark-soft);
-            font-size: .82rem;
-            font-weight: 600;
-            cursor: pointer;
-            margin-bottom: 24px;
-            font-family: 'DM Sans', sans-serif;
-            transition: border-color .2s, background .2s;
-        }
+       
         .mobile-toggle:hover { border-color: var(--gold); background: var(--gold-dim); }
         @media (max-width: 991px) {
             .mobile-toggle { display: inline-flex; }
@@ -618,32 +518,8 @@ $all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
     </style>
 </head>
 <body>
+<?php include '../includes/sidebar.php'; ?>
 
-<!-- ══════════════════════════════════════════════════════════════════
-     SIDEBAR
-══════════════════════════════════════════════════════════════════ -->
-<nav class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-        <div class="sidebar-brand-name">L&amp;<span>B</span></div>
-        <div class="sidebar-brand-sub">Admin Panel</div>
-    </div>
-    <div class="sidebar-nav">
-        <span class="sidebar-nav-label">Main</span>
-        <a href="dashboard.php"          class="nav-link"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
-        <a href="manage_appointment.php" class="nav-link"><i class="bi bi-calendar-event"></i> Appointments</a>
-        <a href="manage_treatments.php"  class="nav-link"><i class="bi bi-droplet-half"></i> Treatments</a>
-        <a href="manage_cosmetics.php"   class="nav-link"><i class="bi bi-droplet-half"></i> Cosmetics</a>
-        <a href="manage_therapist.php"   class="nav-link active"><i class="bi bi-person-badge"></i> Therapists</a>
-        <a href="manage_room.php"        class="nav-link"><i class="bi bi-door-open"></i> Rooms</a>
-
-        <span class="sidebar-nav-label" style="margin-top:12px;">Management</span>
-        <a href="manage_account.php"     class="nav-link"><i class="bi bi-people"></i> Accounts</a>
-        <a href="system_logs.php"        class="nav-link"><i class="bi bi-shield-lock"></i> System Logs</a>
-
-        <a href="logout.php" class="nav-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a>
-    </div>
-    <div class="sidebar-footer">Lumiére &amp; Bliss © <?= date('Y') ?></div>
-</nav>
 
 <!-- ── Main Content ──────────────────────────────────────────────────── -->
 <div class="main-content">

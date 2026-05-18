@@ -650,7 +650,7 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
         <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
             <div class="topbar-date-pill">
                 <i class="bi bi-calendar3 me-1"></i>
-                <?= date('F d, Y', strtotime($filter_date)) ?>
+                <?= date('F d, Y') ?>
             </div>
             <button class="btn-disable" data-bs-toggle="modal" data-bs-target="#disableDateModal">
                 <i class="bi bi-calendar-x"></i> Disable a Date

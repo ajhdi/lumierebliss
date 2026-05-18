@@ -57,6 +57,7 @@ if (isset($_POST['clear_logs'])) {
         
         <!-- Added Treatments Option Here -->
         <a href="manage_treatments.php" class="nav-link"><i class="bi bi-droplet-half"></i> Treatments</a>
+        <a href="manage_promotions.php" class="nav-link"><i class="bi bi-tag"></i> Promotions</a>
         
         <a href="manage_therapist.php" class="nav-link"><i class="bi bi-person-badge"></i> Therapists</a>
         <a href="manage_room.php" class="nav-link"><i class="bi bi-door-open"></i> Rooms</a>

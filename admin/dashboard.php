@@ -10,7 +10,7 @@ if (!isset($_SESSION['admin_id'])) {
 
 // 1. ANALYTICS: Basic Counts
 $therapist_count = $pdo->query("SELECT COUNT(*) FROM therapists WHERE status='active'")->fetchColumn();
-$room_count = $pdo->query("SELECT COUNT(*) FROM rooms WHERE status='active'")->fetchColumn();
+$room_count = $pdo->query("SELECT COUNT(*) FROM rooms WHERE status='available'")->fetchColumn();
 $confirmed_count = $pdo->query("SELECT COUNT(*) FROM appointments WHERE status='confirmed'")->fetchColumn();
 
 // 2. ANALYTICS: Completed Appointments (Current Month)
@@ -21,7 +21,6 @@ $revenue_query = $pdo->query("SELECT SUM(total_amount) FROM appointments WHERE s
 $est_revenue = $revenue_query ? number_format($revenue_query, 2) : "0.00";
 
 // 4. REPORTS: Most Booked Service
-// This joins treatments and packages to see what is most popular
 $popular_service = $pdo->query("
     SELECT name, COUNT(*) as count FROM (
         SELECT t.name FROM appointments a JOIN treatments t ON a.treatment_id = t.treatment_id
@@ -45,197 +44,667 @@ $display_peak = $peak_time ? date("g:i A", strtotime($peak_time['hour'] . ":00")
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Lumiére and Bliss</title>
+    <title>Admin Dashboard — Lumiére &amp; Bliss</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
     <style>
+        /* ─── Design Tokens ─────────────────────────────────────────── */
         :root {
-            --sidebar-width: 260px;
-            --accent-gold: #C5A059;
-            --dark-bg: #1a1a1a;
-        }
-        body { background-color: #f4f6f9; font-family: 'Inter', sans-serif; }
-        
-        /* Consistent Sidebar */
-        .sidebar {
-            width: var(--sidebar-width);
-            height: 100vh;
-            position: fixed;
-            background: var(--dark-bg);
-            color: white;
-            transition: 0.3s;
-            z-index: 1000;
-        }
-        .nav-link {
-            color: rgba(255,255,255,0.6);
-            padding: 15px 25px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: 0.2s;
-        }
-        .nav-link:hover, .nav-link.active {
-            color: white;
-            background: rgba(255,255,255,0.05);
-            border-left: 4px solid var(--accent-gold);
-        }
-        
-        .main-content {
-            margin-left: var(--sidebar-width);
-            padding: 40px;
-            transition: 0.3s;
+            --white:        #ffffff;
+            --cream:        #fdfbf7;
+            --gold:         #c9a96e;
+            --gold-light:   #e8d5b0;
+            --gold-dim:     rgba(201,169,110,0.15);
+            --dark:         #1a1a1a;
+            --dark-soft:    #2e2e2e;
+            --muted:        #8a8070;
+            --border:       rgba(201,169,110,0.22);
+            --sidebar-w:    270px;
+            --radius-lg:    18px;
+            --radius-md:    12px;
+            --shadow:       0 8px 32px rgba(26,26,26,0.08);
+            --shadow-deep:  0 16px 48px rgba(26,26,26,0.14);
         }
 
-        .card-stat {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            transition: transform 0.3s;
+        /* ─── Reset / Base ──────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background: var(--cream);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 18px;
+            color: var(--dark);
+            min-height: 100vh;
+            overflow-x: hidden;
         }
-        .card-stat:hover { transform: translateY(-5px); }
-        .icon-box {
-            width: 45px;
-            height: 45px;
+
+        /* ─── Sidebar ───────────────────────────────────────────────── */
+        .sidebar {
+            position: fixed;
+            inset: 0 auto 0 0;
+            width: var(--sidebar-w);
+            background: var(--dark);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            transition: transform .35s cubic-bezier(.4,0,.2,1);
+        }
+
+        /* Subtle gold grain overlay on sidebar */
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 30% 20%, rgba(201,169,110,0.07) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* Brand lockup */
+        .sidebar-brand {
+            padding: 36px 28px 28px;
+            border-bottom: 1px solid var(--border);
+        }
+        .sidebar-brand-label {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 300;
+            font-size: 1.55rem;
+            color: var(--white);
+            letter-spacing: .08em;
+            line-height: 1.1;
+        }
+        .sidebar-brand-label em {
+            font-style: italic;
+            color: var(--gold);
+        }
+        .sidebar-brand-sub {
+            font-size: .7rem;
+            font-weight: 500;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* Nav items */
+        .sidebar-nav {
+            flex: 1;
+            padding: 24px 0;
+            overflow-y: auto;
+        }
+        .nav-section-label {
+            font-size: .65rem;
+            font-weight: 700;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+            color: var(--muted);
+            padding: 16px 28px 8px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 13px 28px;
+            color: rgba(255,255,255,.5);
+            font-size: .88rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color .2s, background .2s;
+            position: relative;
+            border-left: 3px solid transparent;
+        }
+        .nav-item i {
+            font-size: 1.05rem;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .nav-item:hover {
+            color: var(--gold-light);
+            background: rgba(201,169,110,.06);
+            border-left-color: rgba(201,169,110,.4);
+        }
+        .nav-item.active {
+            color: var(--gold);
+            background: rgba(201,169,110,.1);
+            border-left-color: var(--gold);
+        }
+        .nav-item.active i { color: var(--gold); }
+
+        /* Logout at bottom */
+        .sidebar-footer {
+            padding: 20px 0 28px;
+            border-top: 1px solid var(--border);
+        }
+        .nav-item.danger { color: rgba(220,80,80,.7); }
+        .nav-item.danger:hover { color: #e05555; background: rgba(220,80,80,.07); border-left-color: #e05555; }
+
+        /* ─── Main Content ──────────────────────────────────────────── */
+        .main-content {
+            margin-left: var(--sidebar-w);
+            min-height: 100vh;
+            padding: 48px 44px 60px;
+            transition: margin .35s cubic-bezier(.4,0,.2,1);
+        }
+
+        /* ─── Top Bar ───────────────────────────────────────────────── */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 48px;
+        }
+        .topbar-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 600;
+            font-size: 2.4rem;
+            color: var(--dark);
+            line-height: 1.1;
+        }
+        .topbar-title span {
+            display: block;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .75rem;
+            font-weight: 500;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .topbar-date {
+            font-size: .8rem;
+            color: var(--muted);
+            text-align: right;
+        }
+        .topbar-date strong {
+            display: block;
+            font-size: .9rem;
+            color: var(--dark-soft);
+            font-weight: 600;
+        }
+
+        /* Gold rule divider */
+        .gold-rule {
+            width: 48px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--gold), var(--gold-light));
+            border-radius: 2px;
+            margin-bottom: 36px;
+        }
+
+        /* ─── Section Label ─────────────────────────────────────────── */
+        .section-eyebrow {
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .22em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 20px;
+        }
+
+        /* ─── Stat Cards ────────────────────────────────────────────── */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 36px;
+        }
+
+        .stat-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 28px 26px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(201,169,110,.1);
+            position: relative;
+            overflow: hidden;
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--gold), var(--gold-light));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform .3s ease;
+        }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-deep); }
+        .stat-card:hover::after { transform: scaleX(1); }
+
+        .stat-icon {
+            width: 42px;
+            height: 42px;
             border-radius: 10px;
+            background: var(--gold-dim);
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #f8f9fa;
-            color: var(--accent-gold);
-            font-size: 1.2rem;
+            font-size: 1.1rem;
+            color: var(--gold);
+            margin-bottom: 18px;
+        }
+        .stat-label {
+            font-size: .67rem;
+            font-weight: 700;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .stat-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 600;
+            font-size: 2.6rem;
+            color: var(--dark);
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+        .stat-tag {
+            font-size: .75rem;
+            font-weight: 500;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .stat-tag.success { color: #5a8a5a; }
+        .stat-tag.info    { color: #4a7aaa; }
+        .stat-tag.warn    { color: #a07a30; }
+
+        /* ─── Bottom Grid ────────────────────────────────────────────── */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
         }
 
-        /* Mobile View */
+        /* Revenue Card */
+        .revenue-card {
+            background: var(--dark);
+            border-radius: var(--radius-lg);
+            padding: 40px 42px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-deep);
+        }
+        .revenue-card::before {
+            content: '';
+            position: absolute;
+            top: -80px; right: -80px;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(201,169,110,0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .revenue-card::after {
+            content: '"';
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 18rem;
+            color: rgba(201,169,110,0.04);
+            position: absolute;
+            top: -60px;
+            left: 24px;
+            line-height: 1;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .revenue-eyebrow {
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 12px;
+        }
+        .revenue-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 600;
+            font-size: 1.8rem;
+            color: var(--white);
+            margin-bottom: 28px;
+        }
+        .revenue-amount {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 300;
+            font-size: 4rem;
+            color: var(--white);
+            line-height: 1;
+        }
+        .revenue-amount sup {
+            font-size: 1.6rem;
+            vertical-align: super;
+            color: var(--gold);
+        }
+        .revenue-sub {
+            font-size: .78rem;
+            color: var(--gold-light);
+            margin-top: 8px;
+            opacity: .7;
+            font-weight: 500;
+            letter-spacing: .06em;
+        }
+        .revenue-divider {
+            border: none;
+            border-top: 1px solid rgba(201,169,110,.2);
+            margin: 28px 0;
+        }
+        .revenue-note {
+            font-size: .8rem;
+            color: rgba(255,255,255,.4);
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            line-height: 1.5;
+        }
+        .revenue-note i { color: var(--gold); margin-top: 2px; flex-shrink: 0; }
+
+        /* Insights Card */
+        .insights-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 36px 32px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(201,169,110,.1);
+            display: flex;
+            flex-direction: column;
+        }
+        .insights-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 600;
+            font-size: 1.5rem;
+            color: var(--dark);
+            margin-bottom: 28px;
+        }
+        .insight-item {
+            padding: 18px 0;
+            border-bottom: 1px solid rgba(201,169,110,.12);
+        }
+        .insight-item:last-of-type { border-bottom: none; }
+        .insight-label {
+            font-size: .65rem;
+            font-weight: 700;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .insight-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        .insight-value.empty { color: var(--muted); font-weight: 400; font-style: italic; }
+
+        .btn-report {
+            margin-top: auto;
+            padding-top: 28px;
+        }
+        .btn-report a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 13px 0;
+            background: transparent;
+            border: 1.5px solid var(--gold);
+            border-radius: 50px;
+            color: var(--dark);
+            font-size: .82rem;
+            font-weight: 600;
+            letter-spacing: .08em;
+            text-decoration: none;
+            transition: background .22s, color .22s;
+        }
+        .btn-report a:hover {
+            background: var(--gold);
+            color: var(--white);
+        }
+
+        /* ─── Mobile ─────────────────────────────────────────────────── */
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 18px;
+            left: 18px;
+            z-index: 1100;
+            background: var(--dark);
+            border: 1px solid var(--border);
+            color: var(--gold);
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.55);
+            z-index: 999;
+        }
+
+        @media (max-width: 1200px) {
+            .stat-grid { grid-template-columns: repeat(2, 1fr); }
+        }
         @media (max-width: 991px) {
             .sidebar { transform: translateX(-100%); }
-            .sidebar.active { transform: translateX(0); }
-            .main-content { margin-left: 0; }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 80px 24px 40px; }
+            .mobile-toggle { display: flex; }
+            .sidebar-overlay.visible { display: block; }
+            .bottom-grid { grid-template-columns: 1fr; }
         }
+        @media (max-width: 600px) {
+            .stat-grid { grid-template-columns: 1fr; }
+            .topbar { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .topbar-date { text-align: left; }
+        }
+
+        /* ─── Fade-in animations ────────────────────────────────────── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .stat-card   { animation: fadeUp .5s ease both; }
+        .stat-card:nth-child(1) { animation-delay: .05s; }
+        .stat-card:nth-child(2) { animation-delay: .12s; }
+        .stat-card:nth-child(3) { animation-delay: .19s; }
+        .stat-card:nth-child(4) { animation-delay: .26s; }
+        .revenue-card  { animation: fadeUp .5s .3s ease both; }
+        .insights-card { animation: fadeUp .5s .38s ease both; }
     </style>
 </head>
 <body>
 
-<!-- Sidebar -->
+<!-- Mobile Toggle -->
+<button class="mobile-toggle" id="mobileToggle" aria-label="Open menu">
+    <i class="bi bi-list"></i>
+</button>
+
+<!-- Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ── Sidebar ─────────────────────────────────────────────────────── -->
 <nav class="sidebar" id="sidebar">
-    <div class="p-4 mb-4">
-        <h4 class="fw-bold mb-0 text-white">L&B <span style="color: var(--accent-gold);">Admin</span></h4>
+    <div class="sidebar-brand">
+        <div class="sidebar-brand-label">Lumiére <em>&amp;</em> Bliss</div>
+        <div class="sidebar-brand-sub">Administration Console</div>
     </div>
-    <div class="nav flex-column">
-        <a href="dashboard.php" class="nav-link active"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
-        <a href="manage_appointment.php" class="nav-link"><i class="bi bi-calendar-event"></i> Appointments</a>
-        
-        <!-- Added Treatments Option Here -->
-        <a href="manage_treatments.php" class="nav-link"><i class="bi bi-droplet-half"></i> Treatments</a>
-        
-        <a href="manage_therapist.php" class="nav-link"><i class="bi bi-person-badge"></i> Therapists</a>
-        <a href="manage_room.php" class="nav-link"><i class="bi bi-door-open"></i> Rooms</a>
-        <a href="manage_account.php" class="nav-link"><i class="bi bi-people"></i> Accounts</a>
-        <a href="system_logs.php" class="nav-link"><i class="bi bi-shield-lock"></i> Logs</a>
-        <a href="logout.php" class="nav-link text-danger mt-5"><i class="bi bi-box-arrow-right"></i> Logout</a>
+
+    <div class="sidebar-nav">
+        <div class="nav-section-label">Overview</div>
+        <a href="dashboard.php" class="nav-item active">
+            <i class="bi bi-grid-1x2"></i> Dashboard
+        </a>
+
+        <div class="nav-section-label">Management</div>
+        <a href="manage_appointment.php" class="nav-item">
+            <i class="bi bi-calendar-event"></i> Appointments
+        </a>
+        <a href="manage_treatments.php" class="nav-item">
+            <i class="bi bi-droplet-half"></i> Treatments
+        </a>
+        <a href="manage_therapist.php" class="nav-item">
+            <i class="bi bi-person-badge"></i> Therapists
+        </a>
+        <a href="manage_room.php" class="nav-item">
+            <i class="bi bi-door-open"></i> Rooms
+        </a>
+        <a href="manage_account.php" class="nav-item">
+            <i class="bi bi-people"></i> Accounts
+        </a>
+
+        <div class="nav-section-label">System</div>
+        <a href="system_logs.php" class="nav-item">
+            <i class="bi bi-shield-lock"></i> Audit Logs
+        </a>
+    </div>
+
+    <div class="sidebar-footer">
+        <a href="logout.php" class="nav-item danger">
+            <i class="bi bi-box-arrow-right"></i> Sign Out
+        </a>
     </div>
 </nav>
 
+<!-- ── Main Content ────────────────────────────────────────────────── -->
 <div class="main-content">
-    <div class="d-flex justify-content-between align-items-center mb-5">
-        <div>
-            <h2 class="fw-bold">Welcome Back, Admin</h2>
-            <p class="text-muted">Here is what's happening at Lumiére and Bliss today.</p>
-        </div>
-        <button class="btn btn-dark d-lg-none" onclick="document.getElementById('sidebar').classList.toggle('active')">
-            <i class="bi bi-list"></i>
-        </button>
-    </div>
 
-    <!-- Top Analytics Row -->
-    <div class="row g-4 mb-5">
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card card-stat p-4">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h6 class="text-muted small fw-bold">THERAPISTS</h6>
-                        <h3 class="fw-bold mb-0"><?= $therapist_count ?></h3>
-                    </div>
-                    <div class="icon-box"><i class="bi bi-person-heart"></i></div>
-                </div>
-                <p class="small text-success mt-2 mb-0">Currently Active</p>
-            </div>
+    <!-- Top Bar -->
+    <div class="topbar">
+        <div class="topbar-title">
+            <span>Admin Dashboard</span>
+            Welcome Back
         </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card card-stat p-4">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h6 class="text-muted small fw-bold">ROOMS</h6>
-                        <h3 class="fw-bold mb-0"><?= $room_count ?></h3>
-                    </div>
-                    <div class="icon-box"><i class="bi bi-house-door"></i></div>
-                </div>
-                <p class="small text-primary mt-2 mb-0">Total Capacity</p>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card card-stat p-4">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h6 class="text-muted small fw-bold">CONFIRMED</h6>
-                        <h3 class="fw-bold mb-0"><?= $confirmed_count ?></h3>
-                    </div>
-                    <div class="icon-box"><i class="bi bi-check2-circle"></i></div>
-                </div>
-                <p class="small text-warning mt-2 mb-0">Upcoming Bookings</p>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card card-stat p-4">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h6 class="text-muted small fw-bold">COMPLETED</h6>
-                        <h3 class="fw-bold mb-0"><?= $completed_month ?></h3>
-                    </div>
-                    <div class="icon-box"><i class="bi bi-flag"></i></div>
-                </div>
-                <p class="small text-muted mt-2 mb-0">This Month</p>
-            </div>
+        <div class="topbar-date">
+            <strong id="js-date"></strong>
+            Lumiére &amp; Bliss Studio
         </div>
     </div>
 
-    <!-- Reports Section -->
-    <div class="row g-4">
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm p-4 rounded-4" style="min-height: 350px;">
-                <h5 class="fw-bold mb-4">Estimated Revenue Tracking</h5>
-                <div class="d-flex align-items-baseline gap-2">
-                    <h1 class="fw-bold text-dark">₱<?= $est_revenue ?></h1>
-                    <span class="text-muted small">Lifetime Gross</span>
-                </div>
-                <hr>
-                <div class="mt-4">
-                    <p class="text-muted mb-2">System Insight</p>
-                    <div class="alert alert-light border-0 small">
-                        <i class="bi bi-info-circle me-2"></i> Revenue is calculated based on confirmed and completed appointments.
-                    </div>
-                </div>
+    <!-- Gold Rule -->
+    <div class="gold-rule"></div>
+
+    <!-- ── Stat Cards ──────────────────────────────────────────────── -->
+    <p class="section-eyebrow">At a Glance</p>
+    <div class="stat-grid">
+
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-person-heart"></i></div>
+            <div class="stat-label">Therapists</div>
+            <div class="stat-value"><?= $therapist_count ?></div>
+            <div class="stat-tag success"><i class="bi bi-circle-fill" style="font-size:.45rem"></i> Currently Active</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-door-open"></i></div>
+            <div class="stat-label">Rooms</div>
+            <div class="stat-value"><?= $room_count ?></div>
+            <div class="stat-tag info"><i class="bi bi-circle-fill" style="font-size:.45rem"></i> Available Now</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+            <div class="stat-label">Confirmed</div>
+            <div class="stat-value"><?= $confirmed_count ?></div>
+            <div class="stat-tag warn"><i class="bi bi-circle-fill" style="font-size:.45rem"></i> Upcoming Bookings</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon"><i class="bi bi-flag"></i></div>
+            <div class="stat-label">Completed</div>
+            <div class="stat-value"><?= $completed_month ?></div>
+            <div class="stat-tag"><i class="bi bi-circle-fill" style="font-size:.45rem"></i> This Month</div>
+        </div>
+
+    </div>
+
+    <!-- ── Bottom Grid ─────────────────────────────────────────────── -->
+    <p class="section-eyebrow" style="margin-top:16px">Reports &amp; Insights</p>
+    <div class="bottom-grid">
+
+        <!-- Revenue Card -->
+        <div class="revenue-card">
+            <div class="revenue-eyebrow">Financial Overview</div>
+            <div class="revenue-title">Estimated Lifetime Revenue</div>
+
+            <div class="revenue-amount">
+                <sup>₱</sup><?= $est_revenue ?>
+            </div>
+            <div class="revenue-sub">Gross · Confirmed &amp; Completed Appointments</div>
+
+            <hr class="revenue-divider">
+
+            <div class="revenue-note">
+                <i class="bi bi-info-circle-fill"></i>
+                Revenue is calculated based on confirmed and completed appointments. Cancelled bookings are excluded from this figure.
             </div>
         </div>
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm p-4 rounded-4">
-                <h5 class="fw-bold mb-4">Quick Insights</h5>
-                
-                <div class="mb-4">
-                    <label class="text-muted small d-block">MOST BOOKED SERVICE</label>
-                    <span class="fw-bold"><?= $popular_service ? $popular_service['name'] : 'No data yet' ?></span>
-                </div>
 
-                <div class="mb-4">
-                    <label class="text-muted small d-block">PEAK BOOKING TIME</label>
-                    <span class="fw-bold"><?= $display_peak ?></span>
-                </div>
+        <!-- Insights Card -->
+        <div class="insights-card">
+            <div class="insights-title">Quick Insights</div>
 
-                <a href="reports.php" class="btn btn-outline-dark w-100 rounded-pill btn-sm py-2">View Detailed Reports</a>
+            <div class="insight-item">
+                <div class="insight-label">Most Booked Service</div>
+                <div class="insight-value <?= $popular_service ? '' : 'empty' ?>">
+                    <?= $popular_service ? htmlspecialchars($popular_service['name']) : 'No data yet' ?>
+                </div>
+            </div>
+
+            <div class="insight-item">
+                <div class="insight-label">Peak Booking Time</div>
+                <div class="insight-value <?= $display_peak === 'N/A' ? 'empty' : '' ?>">
+                    <?= htmlspecialchars($display_peak) ?>
+                </div>
+            </div>
+
+            <div class="btn-report">
+                <a href="reports.php">
+                    View Detailed Reports <i class="bi bi-arrow-right"></i>
+                </a>
             </div>
         </div>
+
     </div>
 </div>
 
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Live date
+    const d = new Date();
+    document.getElementById('js-date').textContent = d.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // Mobile sidebar toggle
+    const sidebar  = document.getElementById('sidebar');
+    const overlay  = document.getElementById('sidebarOverlay');
+    const toggle   = document.getElementById('mobileToggle');
+
+    toggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('visible');
+    });
+    overlay.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('visible');
+    });
+</script>
 </body>
 </html>

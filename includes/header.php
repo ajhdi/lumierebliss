@@ -5,6 +5,11 @@ $base_url = "/lumierebliss/";
 
 // Logic to determine the target for guest users
 $guest_redirect = isset($is_guest) ? 'signin.php' : '';
+
+// Detect the current page file name
+$current_page = basename($_SERVER['PHP_SELF']);
+// Check if the current page is a landing/home page
+$is_home_page = ($current_page === 'index.php' || $current_page === 'home.php');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -18,7 +23,7 @@ $guest_redirect = isset($is_guest) ? 'signin.php' : '';
     
     <style>
         :root { 
-            --spa-gold: #c9a96e; 
+            var(--spa-gold): #c9a96e; 
             --spa-gold-light: #e8d5b0;
             --spa-dark: #1a1a1a; 
             --spa-muted: #8a8070;
@@ -36,6 +41,15 @@ $guest_redirect = isset($is_guest) ? 'signin.php' : '';
             min-height: 90px;
         }
 
+        /* --- Force Static State for Subpages --- */
+        .navbar.subpage-nav {
+            background: rgba(255, 255, 255, 0.98) !important; 
+            padding: 0 !important; 
+            min-height: 55px; 
+            box-shadow: 0 4px 20px rgba(26,26,26,0.05);
+            border-bottom: 1px solid #ede8df;
+        }
+
         .navbar.scrolled { 
             background: rgba(255, 255, 255, 0.98) !important; 
             padding: 0 !important; 
@@ -50,7 +64,8 @@ $guest_redirect = isset($is_guest) ? 'signin.php' : '';
             visibility: visible;
         }
 
-        .navbar.scrolled .navbar-brand {
+        .navbar.scrolled .navbar-brand,
+        .navbar.subpage-nav .navbar-brand {
             opacity: 0;
             visibility: hidden;
             width: 0;
@@ -77,7 +92,8 @@ $guest_redirect = isset($is_guest) ? 'signin.php' : '';
             transition: 0.3s;
         }
         
-        .navbar.scrolled .nav-link { 
+        .navbar.scrolled .nav-link,
+        .navbar.subpage-nav .nav-link { 
             color: var(--spa-dark) !important; 
             line-height: 55px; 
         }
@@ -113,8 +129,11 @@ $guest_redirect = isset($is_guest) ? 'signin.php' : '';
             transition: 0.3s;
         }
 
-        .navbar.scrolled .btn-book { color: var(--spa-dark) !important; border-color: var(--spa-dark); }
-        .navbar.scrolled .btn-signout { color: var(--spa-muted) !important; }
+        .navbar.scrolled .btn-book,
+        .navbar.subpage-nav .btn-book { color: var(--spa-dark) !important; border-color: var(--spa-dark); }
+        
+        .navbar.scrolled .btn-signout,
+        .navbar.subpage-nav .btn-signout { color: var(--spa-muted) !important; }
 
         .btn-book:hover { color: var(--spa-gold) !important; border-color: var(--spa-gold); }
         .btn-signout:hover { color: var(--spa-gold) !important; }
@@ -124,14 +143,14 @@ $guest_redirect = isset($is_guest) ? 'signin.php' : '';
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg fixed-top" id="mainNav">
+<nav class="navbar navbar-expand-lg fixed-top <?php echo !$is_home_page ? 'subpage-nav' : ''; ?>" id="mainNav">
     <div class="container-fluid px-5"> 
         <a class="navbar-brand" href="<?php echo isset($is_guest) ? 'index.php' : 'home.php'; ?>">
             <img src="<?php echo $base_url; ?>assets/logoheader.png" alt="Lumiére and Bliss" class="nav-logo">
         </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#userNav">
-            <i class="bi bi-list text-white fs-1" id="navIcon"></i>
+            <i class="bi bi-list <?php echo !$is_home_page ? 'text-dark' : 'text-white'; ?> fs-1" id="navIcon"></i>
         </button>
         
         <div class="collapse navbar-collapse" id="userNav">
@@ -160,22 +179,27 @@ $guest_redirect = isset($is_guest) ? 'signin.php' : '';
 </nav>
 
 <script>
-    window.addEventListener('scroll', function() {
-        const nav = document.getElementById('mainNav');
-        const icon = document.getElementById('navIcon');
-        
-        if (window.scrollY > 40) {
-            nav.classList.add('scrolled');
-            if(icon) {
-                icon.classList.remove('text-white');
-                icon.classList.add('text-dark');
+    // Only apply the scrolling transition effect if we are on index.php or home.php
+    const isHomePage = <?php echo $is_home_page ? 'true' : 'false'; ?>;
+
+    if (isHomePage) {
+        window.addEventListener('scroll', function() {
+            const nav = document.getElementById('mainNav');
+            const icon = document.getElementById('navIcon');
+            
+            if (window.scrollY > 40) {
+                nav.classList.add('scrolled');
+                if(icon) {
+                    icon.classList.remove('text-white');
+                    icon.classList.add('text-dark');
+                }
+            } else {
+                nav.classList.remove('scrolled');
+                if(icon) {
+                    icon.classList.remove('text-dark');
+                    icon.classList.add('text-white');
+                }
             }
-        } else {
-            nav.classList.remove('scrolled');
-            if(icon) {
-                icon.classList.remove('text-dark');
-                icon.classList.add('text-white');
-            }
-        }
-    });
+        });
+    }
 </script>

@@ -1,6 +1,6 @@
 <?php
 include '../includes/header.php';
-session_start();
+// session_start();
 
 if (!isset($_SESSION['booking_success'])) {
     header("Location: book_appointment.php");

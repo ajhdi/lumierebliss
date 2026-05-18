@@ -1,6 +1,9 @@
 <?php
 session_start();
 require_once '../config/db.php';
+require_once '../includes/log_action.php';
+
+
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: signin_admin.php");
@@ -39,6 +42,11 @@ if (isset($_POST['add_therapist'])) {
         try {
             $stmt->execute([$first, $middle, $last, $gender, $specialty, $work, $photo, $user, $hashed_pass]);
             $msg = "Therapist account created successfully.";
+
+logAction(
+    $pdo,
+    "Added therapist account: " . $first . " " . $last . " (" . $user . ")"
+);
         } catch (PDOException $e) {
             $error = "Username already exists.";
         }
@@ -50,7 +58,23 @@ if (isset($_POST['archive_therapist'])) {
     header('Content-Type: application/json');
     try {
         $stmt = $pdo->prepare("UPDATE therapists SET status = 'archived' WHERE therapist_id = ?");
-        $stmt->execute([$_POST['archive_id']]);
+$stmt->execute([$_POST['archive_id']]);
+
+$getTherapist = $pdo->prepare("
+    SELECT first_name, last_name, username
+    FROM therapists
+    WHERE therapist_id = ?
+");
+$getTherapist->execute([$_POST['archive_id']]);
+$therapist = $getTherapist->fetch();
+
+logAction(
+    $pdo,
+    "Archived therapist account: " .
+    $therapist['first_name'] . " " .
+    $therapist['last_name'] .
+    " (" . $therapist['username'] . ")"
+);
         echo json_encode(["status" => "success", "message" => "Therapist archived successfully"]);
     } catch (Exception $e) {
         echo json_encode(["status" => "error", "message" => $e->getMessage()]);
@@ -61,8 +85,25 @@ if (isset($_POST['archive_therapist'])) {
 // --- LOGIC: RESTORE THERAPIST ---
 if (isset($_POST['restore_therapist'])) {
     $stmt = $pdo->prepare("UPDATE therapists SET status = 'active' WHERE therapist_id = ?");
-    $stmt->execute([$_POST['restore_id']]);
-    $msg = "Therapist account restored.";
+$stmt->execute([$_POST['restore_id']]);
+
+$getTherapist = $pdo->prepare("
+    SELECT first_name, last_name, username
+    FROM therapists
+    WHERE therapist_id = ?
+");
+$getTherapist->execute([$_POST['restore_id']]);
+$therapist = $getTherapist->fetch();
+
+logAction(
+    $pdo,
+    "Restored therapist account: " .
+    $therapist['first_name'] . " " .
+    $therapist['last_name'] .
+    " (" . $therapist['username'] . ")"
+);
+
+$msg = "Therapist account restored.";
 }
 
 // --- LOGIC: UPDATE USER MEMBERSHIP ---
@@ -70,8 +111,26 @@ if (isset($_POST['update_membership'])) {
     $type = $_POST['account_type'];
     $uses = ($type == 'member') ? 2 : 0;
     $stmt = $pdo->prepare("UPDATE users SET account_type = ?, semi_luxury_uses_left = ? WHERE user_id = ?");
-    $stmt->execute([$type, $uses, $_POST['user_id']]);
-    $msg = "User membership updated.";
+$stmt->execute([$type, $uses, $_POST['user_id']]);
+
+$getUser = $pdo->prepare("
+    SELECT first_name, last_name, email
+    FROM users
+    WHERE user_id = ?
+");
+$getUser->execute([$_POST['user_id']]);
+$userData = $getUser->fetch();
+
+logAction(
+    $pdo,
+    "Updated membership to " . strtoupper($type) .
+    " for user: " .
+    $userData['first_name'] . " " .
+    $userData['last_name'] .
+    " (" . $userData['email'] . ")"
+);
+
+$msg = "User membership updated.";
 }
 
 // --- LOGIC: PASSWORD RESET VERIFICATION ---
@@ -106,7 +165,44 @@ if (isset($_POST['finalize_reset'])) {
             $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE user_id = ?");
         }
         $stmt->execute([$hashed_pass, $id]);
-        $msg = "Password reset successful.";
+        if ($type == 'therapist') {
+
+    $getAccount = $pdo->prepare("
+        SELECT first_name, last_name, username
+        FROM therapists
+        WHERE therapist_id = ?
+    ");
+    $getAccount->execute([$id]);
+    $acc = $getAccount->fetch();
+
+    logAction(
+        $pdo,
+        "Reset password for therapist: " .
+        $acc['first_name'] . " " .
+        $acc['last_name'] .
+        " (" . $acc['username'] . ")"
+    );
+
+} else {
+
+    $getAccount = $pdo->prepare("
+        SELECT first_name, last_name, email
+        FROM users
+        WHERE user_id = ?
+    ");
+    $getAccount->execute([$id]);
+    $acc = $getAccount->fetch();
+
+    logAction(
+        $pdo,
+        "Reset password for user: " .
+        $acc['first_name'] . " " .
+        $acc['last_name'] .
+        " (" . $acc['email'] . ")"
+    );
+}
+
+$msg = "Password reset successful.";
     }
 }
 

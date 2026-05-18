@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/db.php';
+require_once '../includes/log_action.php';
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: signin_admin.php");
@@ -15,12 +16,14 @@ if (isset($_POST['disable_date_btn'])) {
         $remarks = $_POST['remarks'];
 
         $stmt = $pdo->prepare("INSERT INTO disabled_dates (disabled_date, remarks) VALUES (?, ?)");
-        $stmt->execute([$date, $remarks]);
+$stmt->execute([$date, $remarks]);
 
-        echo json_encode([
-            "status"  => "success",
-            "message" => "Date disabled successfully"
-        ]);
+logAction($pdo, "Disabled date: $date — Reason: $remarks");
+
+echo json_encode([
+    "status"  => "success",
+    "message" => "Date disabled successfully"
+]);
     } catch (Exception $e) {
         echo json_encode([
             "status"  => "error",

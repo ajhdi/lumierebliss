@@ -1008,56 +1008,16 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
         </div>
     </div>
 </div>
-        
+       
 <!-- ── Add/Edit Room Modal ─────────────────────────────────────────── -->
-<div class="modal fade" id="roomModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width:900px;">
-        <div class="modal-content" style="
-            border-radius:var(--radius-lg);
-            overflow:hidden;
-            border:none;
-            box-shadow:var(--shadow-deep);
-            display:flex;
-            flex-direction:row;
-            min-height:520px;
-        ">
-            <form id="roomForm" enctype="multipart/form-data" style="display:contents;">
+<div class="modal fade" id="roomModal" tabindex="-1" aria-labelledby="roomModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+        <div class="modal-content">
 
-                <!-- ── LEFT PANEL: Image Preview ─────────────────── -->
-                <div style="
-                    width:38%;
-                    flex-shrink:0;
-                    position:relative;
-                    overflow:hidden;
-                    background:var(--dark);
-                ">
-                    <!-- Background room image -->
-                    <img id="room_preview"
-                         src="../assets/img/room/default.jpg"
-                         style="
-                            position:absolute;
-                            inset:0;
-                            width:100%;
-                            height:100%;
-                            object-fit:cover;
-                            opacity:.4;
-                         ">
+            <!-- IMPORTANT -->
+            <form id="roomForm" enctype="multipart/form-data">
 
-                    <!-- Dark gradient -->
-                    <div style="
-                        position:absolute;
-                        inset:0;
-                        background:linear-gradient(to top,rgba(20,20,20,.95) 30%,rgba(20,20,20,.3) 70%,transparent 100%);
-                        pointer-events:none;
-                    "></div>
-
-                    <!-- Gold glow -->
-                    <div style="
-                        position:absolute;
-                        inset:0;
-                        background:radial-gradient(ellipse at 30% 15%,rgba(201,169,110,.08) 0%,transparent 60%);
-                        pointer-events:none;
-                    "></div>
+                <div class="modal-header d-flex justify-content-between align-items-center">
 
                     <!-- Upload trigger overlay -->
                     <label for="room_image" style="

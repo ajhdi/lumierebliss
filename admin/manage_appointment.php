@@ -740,9 +740,14 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
                                 <?php endif; ?>
                             </td>
                             <td style="text-align:right; padding-right:28px;">
-                                <button class="btn-view">
+
+                                <button class="btn-view"
+                                    onclick='viewAppointment(<?= json_encode($app) ?>)'>
+
                                     View <i class="bi bi-arrow-right" style="font-size:.7rem;"></i>
+
                                 </button>
+
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -792,7 +797,402 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
         </div>
     </div>
 </div>
+<!-- Appointment Summary Modal -->
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
 
+<style>
+:root{
+    --gold:#c9a96e;
+    --gold-light:#e8d5aa;
+    --gold-dim:rgba(201,169,110,.15);
+    --dark:#0d0d0d;
+    --surface:#141414;
+    --surface2:#1a1a1a;
+    --border:rgba(201,169,110,.18);
+    --text-muted:rgba(255,255,255,.4);
+}
+
+/* Modal */
+#appointmentSummaryModal .modal-content{
+    background:var(--surface);
+    border:1px solid var(--border)!important;
+    border-radius:8px!important;
+    overflow:hidden;
+    box-shadow:
+        0 40px 100px rgba(0,0,0,.8),
+        0 0 0 1px var(--border);
+}
+
+/* Top gold line */
+.modal-crown{
+    height:3px;
+    background:linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--gold) 30%,
+        var(--gold-light) 50%,
+        var(--gold) 70%,
+        transparent 100%
+    );
+}
+
+/* Header */
+#appointmentSummaryModal .modal-header{
+    background:var(--dark);
+    border-bottom:1px solid var(--border)!important;
+    padding:1.75rem 2.25rem 1.5rem;
+    position:relative;
+    overflow:hidden;
+}
+
+#appointmentSummaryModal .modal-header::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:
+        radial-gradient(
+            ellipse 60% 120% at 50% -10%,
+            rgba(201,169,110,.08) 0%,
+            transparent 70%
+        );
+}
+
+.header-eyebrow{
+    font-family:'Montserrat',sans-serif;
+    font-size:.65rem;
+    letter-spacing:.3em;
+    text-transform:uppercase;
+    color:var(--gold);
+    opacity:.7;
+    margin-bottom:.3rem;
+}
+
+.modal-title-main{
+    font-family:'Cormorant Garamond',serif;
+    font-size:2rem;
+    font-weight:300;
+    color:#fff;
+    letter-spacing:.04em;
+}
+
+.modal-title-main em{
+    color:var(--gold);
+    font-style:italic;
+}
+
+.modal-ref{
+    font-family:'Montserrat',sans-serif;
+    font-size:.6rem;
+    letter-spacing:.18em;
+    color:var(--text-muted);
+    margin-top:.4rem;
+}
+
+/* Close */
+.btn-close-custom{
+    background:transparent;
+    border:1px solid rgba(255,255,255,.12);
+    color:rgba(255,255,255,.5);
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.btn-close-custom:hover{
+    border-color:var(--gold);
+    color:var(--gold);
+    transform:rotate(90deg);
+}
+
+/* Body */
+#appointmentSummaryModal .modal-body{
+    padding:0;
+    background:var(--surface);
+}
+
+/* Divider */
+.section-divider{
+    display:flex;
+    align-items:center;
+    gap:.75rem;
+    padding:.75rem 2.25rem;
+    background:var(--dark);
+}
+
+.section-divider span{
+    font-family:'Montserrat',sans-serif;
+    font-size:.58rem;
+    letter-spacing:.25em;
+    text-transform:uppercase;
+    color:var(--gold);
+    opacity:.65;
+}
+
+.section-divider::before,
+.section-divider::after{
+    content:'';
+    flex:1;
+    height:1px;
+    background:linear-gradient(90deg,transparent,var(--border));
+}
+
+.section-divider::after{
+    background:linear-gradient(270deg,transparent,var(--border));
+}
+
+/* Rows */
+.summary-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:1rem 2.25rem;
+    border-bottom:1px solid rgba(255,255,255,.04);
+    transition:.2s;
+}
+
+.summary-row:hover{
+    background:rgba(255,255,255,.02);
+}
+
+.row-label{
+    font-family:'Montserrat',sans-serif;
+    font-size:.68rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+}
+
+.row-value{
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.15rem;
+    color:rgba(255,255,255,.9);
+    text-align:right;
+}
+
+/* Total */
+.total-area{
+    background:var(--dark);
+    padding:1.6rem 2.25rem 1.8rem;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    position:relative;
+    overflow:hidden;
+}
+
+.total-area::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:
+        radial-gradient(
+            ellipse 80% 120% at 80% 110%,
+            rgba(201,169,110,.06) 0%,
+            transparent 65%
+        );
+}
+
+.total-label-sub{
+    font-family:'Montserrat',sans-serif;
+    font-size:.6rem;
+    letter-spacing:.25em;
+    text-transform:uppercase;
+    color:var(--gold);
+    opacity:.65;
+}
+
+.total-label{
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.15rem;
+    color:rgba(255,255,255,.55);
+}
+
+.total-amount{
+    font-family:'Cormorant Garamond',serif;
+    font-size:3rem;
+    line-height:1;
+    font-weight:300;
+    color:var(--gold);
+}
+
+.total-amount sup{
+    font-size:1rem;
+    color:var(--gold-light);
+}
+
+/* Footer */
+.modal-footer-custom{
+    padding:1.25rem 2.25rem 1.75rem;
+    display:flex;
+    justify-content:flex-end;
+    gap:.75rem;
+    border-top:1px solid var(--border);
+    background:var(--surface);
+}
+
+.btn-outline-gold{
+    font-family:'Montserrat',sans-serif;
+    font-size:.65rem;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    background:transparent;
+    border:1px solid var(--border);
+    color:rgba(255,255,255,.45);
+    padding:.7rem 1.5rem;
+    transition:.3s;
+}
+
+.btn-outline-gold:hover{
+    border-color:rgba(255,255,255,.25);
+    color:#fff;
+}
+
+.btn-gold{
+    font-family:'Montserrat',sans-serif;
+    font-size:.65rem;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    background:var(--gold);
+    border:none;
+    color:#000;
+    padding:.7rem 2rem;
+    font-weight:600;
+    transition:.3s;
+}
+
+.btn-gold:hover{
+    background:var(--gold-light);
+}
+</style>
+
+<!-- Appointment Summary Modal -->
+<div class="modal fade"
+     id="appointmentSummaryModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+        <div class="modal-content border-0">
+
+            <!-- Gold Line -->
+            <div class="modal-crown"></div>
+
+            <!-- Header -->
+            <div class="modal-header border-0 d-flex justify-content-between align-items-start">
+
+                <div>
+                    <div class="header-eyebrow">
+                        Booking Confirmation
+                    </div>
+
+                    <h3 class="modal-title-main">
+                        Appointment <em>Summary</em>
+                    </h3>
+
+                    <div class="modal-ref">
+                        REF #APT-2026-00847
+                    </div>
+                </div>
+
+                <button class="btn-close-custom"
+                        data-bs-dismiss="modal">
+                    ✕
+                </button>
+
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body">
+
+                <!-- Guest -->
+                <div class="section-divider">
+                    <span>Guest Details</span>
+                </div>
+
+                <div class="summary-row">
+                    <span class="row-label">Your Name</span>
+                    <span class="row-value" id="sum_name"></span>
+                </div>
+
+                <div class="summary-row">
+                    <span class="row-label">Date & Time</span>
+                    <span class="row-value" id="sum_datetime"></span>
+                </div>
+
+                <div class="summary-row">
+                    <span class="row-label">Specialist</span>
+                    <span class="row-value" id="sum_therapist"></span>
+                </div>
+
+                <div class="summary-row">
+                    <span class="row-label">Suite</span>
+                    <span class="row-value" id="sum_room"></span>
+                </div>
+
+                <!-- Service -->
+                <div class="section-divider">
+                    <span>Service</span>
+                </div>
+
+                <div class="summary-row">
+                    <span class="row-label">Treatment / Package</span>
+                    <span class="row-value" id="sum_service"></span>
+                </div>
+
+                <div class="summary-row">
+                    <span class="row-label">Subtotal</span>
+                    <span class="row-value" id="sum_subtotal"></span>
+                </div>
+
+                <div class="summary-row">
+                    <span class="row-label">VAT (12%)</span>
+                    <span class="row-value" id="sum_vat"></span>
+                </div>
+
+                <!-- Total -->
+                <div class="total-area">
+
+                    <div>
+                        <div class="total-label-sub">
+                            Amount Payable
+                        </div>
+
+                        <div class="total-label">
+                            Total Due
+                        </div>
+                    </div>
+
+                    <div class="total-amount"
+                         id="sum_total">
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer-custom">
+
+                <button class="btn-outline-gold"
+                        data-bs-dismiss="modal">
+                    Close
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     // ── Mobile sidebar ──────────────────────────────────────────────
@@ -837,6 +1237,57 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             Swal.fire({ icon: 'error', title: 'Server Error', text: 'Something went wrong!' });
             console.error(error);
         });
+    }
+    function viewAppointment(data) {
+
+        // Full Name
+        document.getElementById('sum_name').textContent =
+            data.first_name + ' ' + data.last_name;
+
+        // Date & Time
+        const dateObj = new Date(
+            data.appointment_date + 'T' + data.appointment_time
+        );
+
+        document.getElementById('sum_datetime').textContent =
+            dateObj.toLocaleString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+        // Therapist
+        document.getElementById('sum_therapist').textContent =
+            data.t_fname + ' ' + data.t_lname;
+
+        // Room
+        document.getElementById('sum_room').textContent =
+            data.room_name;
+
+        // Service
+        document.getElementById('sum_service').textContent =
+            '₱' + parseFloat(data.subtotal).toFixed(2);
+
+        // Subtotal
+        document.getElementById('sum_subtotal').textContent =
+            '₱' + parseFloat(data.subtotal).toFixed(2);
+
+        // VAT
+        document.getElementById('sum_vat').textContent =
+            '₱' + parseFloat(data.vat).toFixed(2);
+
+        // Total
+        document.getElementById('sum_total').textContent =
+            '₱' + parseFloat(data.total_amount).toFixed(2);
+
+        // Open Modal
+        new bootstrap.Modal(
+            document.getElementById('appointmentSummaryModal')
+        ).show();
+
     }
 </script>
 </body>

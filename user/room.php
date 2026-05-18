@@ -244,8 +244,8 @@ $rooms = $stmt->fetchAll();
                         <div class="card room-card h-100">
                             
                             <div class="room-visual-wrapper">
-                                <?php if (!empty($r['room_image']) && file_exists('../assets/img/rooms/' . $r['room_image'])): ?>
-                                    <img src="../assets/img/rooms/<?= htmlspecialchars($r['room_image']) ?>" class="room-image-render" alt="<?= htmlspecialchars($r['room_name']) ?>" loading="lazy">
+                                <?php if (!empty($r['room_image']) && file_exists('../assets/img/room/' . $r['room_image'])): ?>
+                                    <img src="../assets/img/room/<?= htmlspecialchars($r['room_image']) ?>" class="room-image-render" alt="<?= htmlspecialchars($r['room_name']) ?>" loading="lazy">
                                 <?php else: ?>
                                     <div class="room-fallback-placeholder">
                                         <i class="bi bi-door-open-fill"></i>

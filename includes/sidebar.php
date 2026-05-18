@@ -166,20 +166,23 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <a href="manage_appointment.php" class="nav-item <?= $current_page === 'manage_appointment.php' ? 'active' : '' ?>">
             <i class="bi bi-calendar-event"></i> Appointments
         </a>
-        <a href="manage_treatments.php" class="nav-item <?= $current_page === 'manage_treatments.php' ? 'active' : '' ?>">
-            <i class="bi bi-droplet-half"></i> Treatments
+         <a href="manage_cosmetics.php" class="nav-item <?= $current_page === 'manage_cosmetics.php' ? 'active' : '' ?>">
+            <i class="bi bi-stars"></i> Cosmetics
+        </a>
+        <a href="manage_promotions.php" class="nav-item <?= $current_page === 'manage_promotion.php' ? 'active' : '' ?>">
+            <i class="bi bi-tag"></i> Promotions
         </a>
         <a href="manage_therapist.php" class="nav-item <?= $current_page === 'manage_therapist.php' ? 'active' : '' ?>">
             <i class="bi bi-person-badge"></i> Therapists
         </a>
+        <a href="manage_treatments.php" class="nav-item <?= $current_page === 'manage_treatments.php' ? 'active' : '' ?>">
+            <i class="bi bi-droplet-half"></i> Treatments
+        </a>
         <a href="manage_room.php" class="nav-item <?= $current_page === 'manage_room.php' ? 'active' : '' ?>">
             <i class="bi bi-door-open"></i> Rooms
         </a>
-        <a href="manage_promotion.php" class="nav-item <?= $current_page === 'manage_promotion.php' ? 'active' : '' ?>">
-            <i class="bi bi-tag"></i> Promotions
-        </a>
-        <a href="manage_cosmetics.php" class="nav-item <?= $current_page === 'manage_cosmetics.php' ? 'active' : '' ?>">
-            <i class="bi bi-stars"></i> Cosmetics
+        <a href="reports.php" class="nav-item <?= $current_page === 'manage_room.php' ? 'active' : '' ?>">
+            <i class="bi bi-file-earmark-text"></i> Reports
         </a>
         <a href="manage_account.php" class="nav-item <?= $current_page === 'manage_account.php' ? 'active' : '' ?>">
             <i class="bi bi-people"></i> Accounts

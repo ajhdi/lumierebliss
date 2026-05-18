@@ -8,26 +8,135 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 // Handle Room Save (Add/Edit)
+// Handle Room Save (Add/Edit)
 if (isset($_POST['save_room'])) {
+
     header('Content-Type: application/json');
+
     try {
+
         $room_name = $_POST['room_name'];
         $room_type = $_POST['room_type'];
         $fee       = $_POST['additional_fee'];
         $id        = $_POST['room_id'] ?? '';
 
-        if (!empty($id)) {
-            $stmt = $pdo->prepare("UPDATE rooms SET room_name=?, room_type=?, additional_fee=? WHERE room_id=?");
-            $stmt->execute([$room_name, $room_type, $fee, $id]);
-            echo json_encode(["status" => "success", "message" => "Room updated successfully"]);
-        } else {
-            $stmt = $pdo->prepare("INSERT INTO rooms (room_name, room_type, additional_fee) VALUES (?, ?, ?)");
-            $stmt->execute([$room_name, $room_type, $fee]);
-            echo json_encode(["status" => "success", "message" => "Room added successfully"]);
+        /* ─────────────────────────────
+           IMAGE UPLOAD
+        ───────────────────────────── */
+
+        $image_name = null;
+
+        if (
+            isset($_FILES['room_image']) &&
+            $_FILES['room_image']['error'] === 0
+        ) {
+
+            $upload_dir = "../assets/img/room/";
+
+            // Create folder if not exists
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0777, true);
+            }
+
+            $tmp_name  = $_FILES['room_image']['tmp_name'];
+
+            $extension = strtolower(
+                pathinfo($_FILES['room_image']['name'], PATHINFO_EXTENSION)
+            );
+
+            // Unique filename
+            $image_name = 'room_' . time() . '_' . rand(1000,9999) . '.' . $extension;
+
+            $destination = $upload_dir . $image_name;
+
+            move_uploaded_file($tmp_name, $destination);
         }
+
+        /* ─────────────────────────────
+           UPDATE ROOM
+        ───────────────────────────── */
+
+        if (!empty($id)) {
+
+            // If new image uploaded
+            if ($image_name) {
+
+                $stmt = $pdo->prepare("
+                    UPDATE rooms 
+                    SET room_name=?,
+                        room_type=?,
+                        additional_fee=?,
+                        room_image=?
+                    WHERE room_id=?
+                ");
+
+                $stmt->execute([
+                    $room_name,
+                    $room_type,
+                    $fee,
+                    $image_name,
+                    $id
+                ]);
+
+            } else {
+
+                $stmt = $pdo->prepare("
+                    UPDATE rooms 
+                    SET room_name=?,
+                        room_type=?,
+                        additional_fee=?
+                    WHERE room_id=?
+                ");
+
+                $stmt->execute([
+                    $room_name,
+                    $room_type,
+                    $fee,
+                    $id
+                ]);
+            }
+
+            echo json_encode([
+                "status"  => "success",
+                "message" => "Room updated successfully"
+            ]);
+
+        } else {
+
+            /* ─────────────────────────────
+               INSERT ROOM
+            ───────────────────────────── */
+
+            $stmt = $pdo->prepare("
+                INSERT INTO rooms (
+                    room_name,
+                    room_type,
+                    additional_fee,
+                    room_image
+                ) VALUES (?, ?, ?, ?)
+            ");
+
+            $stmt->execute([
+                $room_name,
+                $room_type,
+                $fee,
+                $image_name
+            ]);
+
+            echo json_encode([
+                "status"  => "success",
+                "message" => "Room added successfully"
+            ]);
+        }
+
     } catch (Exception $e) {
-        echo json_encode(["status" => "error", "message" => $e->getMessage()]);
+
+        echo json_encode([
+            "status"  => "error",
+            "message" => $e->getMessage()
+        ]);
     }
+
     exit();
 }
 
@@ -68,6 +177,7 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -603,6 +713,7 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
         }
     </style>
 </head>
+
 <body>
 
 <!-- Mobile Toggle -->
@@ -668,7 +779,7 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
             <div class="col-md-4">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
-                    <option value="">All Statuses</option>
+                    <option value="">All Status</option>
                     <?php foreach ($statuses as $s): ?>
                         <option value="<?= htmlspecialchars($s['status']) ?>"
                             <?= $status_filter == $s['status'] ? 'selected' : '' ?>>
@@ -728,14 +839,15 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
                             <td>
                                 <?php
                                     $s = strtolower($r['status']);
-                                    $cls = $s === 'available' ? 'badge-available' : ($s === 'archived' ? 'badge-archived' : 'badge-other');
+                                    $cls = ($s === 'active' || $s === 'available') ? 'badge-available'
+                                    : ($s === 'archived' ? 'badge-archived' : 'badge-other');
                                 ?>
                                 <span class="badge-status <?= $cls ?>"><?= ucfirst(htmlspecialchars($r['status'])) ?></span>
                             </td>
                             <td style="text-align:right; padding-right:28px;">
                                 <div style="display:inline-flex; gap:8px;">
-                                    <button class="btn-icon" title="Edit" onclick='editRoom(<?= json_encode($r) ?>)'>
-                                        <i class="bi bi-pencil"></i>
+                                    <button class="btn-icon" title="View" onclick='viewRoom(<?= json_encode($r) ?>)'>
+                                        <i class="bi bi-eye"></i>
                                     </button>
                                     <button class="btn-icon danger" title="Archive" onclick="archiveRoom(<?= (int)$r['room_id'] ?>)">
                                         <i class="bi bi-archive"></i>
@@ -753,55 +865,401 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
 </div><!-- /main-content -->
 
 
+<!-- ── View Room Modal ────────────────────────────────────────────── -->
+<div class="modal fade" id="roomViewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:900px;">
+        <div class="modal-content" style="
+            border-radius:var(--radius-lg);
+            overflow:hidden;
+            border:none;
+            box-shadow:var(--shadow-deep);
+            display:flex;
+            flex-direction:row;
+            min-height:520px;
+        ">
+
+            <!-- ── LEFT PANEL: Image + Name ──────────────────────── -->
+            <div style="
+                width:38%;
+                flex-shrink:0;
+                position:relative;
+                overflow:hidden;
+                background:var(--dark);
+            ">
+                <!-- Background room image -->
+                <img id="view_room_image"
+                     src="../assets/img/room/default.jpg"
+                     style="
+                        position:absolute;
+                        inset:0;
+                        width:100%;
+                        height:100%;
+                        object-fit:cover;
+                        opacity:.4;
+                     ">
+
+                <!-- Dark gradient bottom -->
+                <div style="
+                    position:absolute;
+                    inset:0;
+                    background:linear-gradient(to top,rgba(20,20,20,.95) 30%,rgba(20,20,20,.3) 70%,transparent 100%);
+                    pointer-events:none;
+                "></div>
+
+                <!-- Ambient gold glow top -->
+                <div style="
+                    position:absolute;
+                    inset:0;
+                    background:radial-gradient(ellipse at 30% 15%,rgba(201,169,110,.08) 0%,transparent 60%);
+                    pointer-events:none;
+                "></div>
+
+                <!-- Bottom-left: Type label + Room Name -->
+                <div style="
+                    position:absolute;
+                    bottom:36px;
+                    left:32px;
+                    right:24px;
+                    z-index:2;
+                ">
+                    <div id="view_left_type" style="
+                        font-size:.62rem;
+                        font-weight:700;
+                        letter-spacing:.22em;
+                        text-transform:uppercase;
+                        color:var(--gold);
+                        margin-bottom:10px;
+                    "></div>
+                    <div id="view_left_name" style="
+                        font-family:'Cormorant Garamond',serif;
+                        font-weight:600;
+                        font-size:1.75rem;
+                        color:var(--white);
+                        line-height:1.2;
+                    "></div>
+                </div>
+            </div>
+
+            <!-- ── RIGHT PANEL: Details ───────────────────────────── -->
+            <div style="
+                flex:1;
+                background:var(--cream);
+                display:flex;
+                flex-direction:column;
+                padding:36px 40px 32px;
+            ">
+
+                <!-- Eyebrow -->
+                <div style="
+                    font-size:.65rem;
+                    font-weight:700;
+                    letter-spacing:.22em;
+                    text-transform:uppercase;
+                    color:var(--muted);
+                    margin-bottom:10px;
+                ">Room Profile</div>
+
+                <!-- Room Name (large) -->
+                <div id="view_room_name_title" style="
+                    font-family:'Cormorant Garamond',serif;
+                    font-weight:600;
+                    font-size:2.2rem;
+                    color:var(--dark);
+                    line-height:1.15;
+                    margin-bottom:6px;
+                "></div>
+
+                <!-- Subtitle (@japan equivalent — room type) -->
+                <div id="view_room_type_sub" style="
+                    font-size:.82rem;
+                    color:var(--muted);
+                    margin-bottom:20px;
+                    letter-spacing:.02em;
+                "></div>
+
+                <!-- Divider -->
+                <div style="
+                    height:1px;
+                    background:rgba(201,169,110,.2);
+                    margin-bottom:22px;
+                "></div>
+
+                <!-- Badges -->
+                <div style="
+                    display:flex;
+                    gap:10px;
+                    flex-wrap:wrap;
+                    margin-bottom:28px;
+                ">
+                    <span id="view_badge_status" class="badge-status"></span>
+                    <span id="view_badge_type"   class="badge-type"></span>
+                </div>
+
+                <!-- Fields -->
+                <div style="display:flex;flex-direction:column;gap:22px;flex:1;">
+
+                    <!-- Row: Room Type + Status -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                        <div>
+                            <div style="
+                                font-size:.62rem;
+                                font-weight:700;
+                                letter-spacing:.2em;
+                                text-transform:uppercase;
+                                color:var(--muted);
+                                margin-bottom:7px;
+                            ">Room Type</div>
+                            <div id="view_field_type" style="
+                                font-size:.95rem;
+                                color:var(--dark);
+                                font-weight:500;
+                            "></div>
+                        </div>
+                        <div>
+                            <div style="
+                                font-size:.62rem;
+                                font-weight:700;
+                                letter-spacing:.2em;
+                                text-transform:uppercase;
+                                color:var(--muted);
+                                margin-bottom:7px;
+                            ">Status</div>
+                            <div id="view_field_status" style="
+                                font-size:.95rem;
+                                color:var(--dark);
+                                font-weight:500;
+                            "></div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Fee -->
+                    <div>
+                        <div style="
+                            font-size:.62rem;
+                            font-weight:700;
+                            letter-spacing:.2em;
+                            text-transform:uppercase;
+                            color:var(--muted);
+                            margin-bottom:7px;
+                        ">Additional Fee</div>
+                        <div id="view_field_fee" style="
+                            font-family:'Cormorant Garamond',serif;
+                            font-weight:600;
+                            font-size:1.55rem;
+                            color:var(--dark);
+                        "></div>
+                    </div>
+
+                </div>
+
+                <!-- Footer -->
+                <div style="
+                    display:flex;
+                    align-items:center;
+                    justify-content:flex-end;
+                    gap:16px;
+                    padding-top:28px;
+                    border-top:1px solid rgba(201,169,110,.15);
+                    margin-top:28px;
+                ">
+                    <button
+                        type="button"
+                        data-bs-dismiss="modal"
+                        style="
+                            background:none;
+                            border:none;
+                            font-size:.88rem;
+                            font-weight:500;
+                            color:var(--muted);
+                            cursor:pointer;
+                            padding:4px 8px;
+                            transition:color .2s;
+                        "
+                        onmouseover="this.style.color='var(--dark)'"
+                        onmouseout="this.style.color='var(--muted)'">
+                        Close
+                    </button>
+
+                    <button
+                        type="button"
+                        id="view_edit_btn"
+                        onclick="openEditFromView()"
+                        style="
+                            display:inline-flex;
+                            align-items:center;
+                            gap:8px;
+                            padding:12px 28px;
+                            background:var(--dark);
+                            color:var(--gold-light);
+                            border:none;
+                            border-radius:50px;
+                            font-size:.82rem;
+                            font-weight:700;
+                            letter-spacing:.06em;
+                            cursor:pointer;
+                            transition:background .22s, color .22s;
+                        "
+                        onmouseover="this.style.background='var(--dark-soft)';this.style.color='var(--gold)'"
+                        onmouseout="this.style.background='var(--dark)';this.style.color='var(--gold-light)'">
+                        <i class="bi bi-pencil"></i> Edit Room
+                    </button>
+                </div>
+
+            </div><!-- /right panel -->
+        </div>
+    </div>
+</div>
+       
 <!-- ── Add/Edit Room Modal ─────────────────────────────────────────── -->
 <div class="modal fade" id="roomModal" tabindex="-1" aria-labelledby="roomModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
         <div class="modal-content">
-            <form id="roomForm">
+
+            <!-- IMPORTANT -->
+            <form id="roomForm" enctype="multipart/form-data">
+
                 <div class="modal-header d-flex justify-content-between align-items-center">
+
                     <div class="modal-title-wrap">
                         <div class="modal-eyebrow" id="modalEyebrow">New Room</div>
                         <div class="modal-title" id="roomModalTitle">Add a Spa Room</div>
                     </div>
-                    <button type="button" class="btn-close-custom" data-bs-dismiss="modal" aria-label="Close">
+
+                    <button type="button"
+                            class="btn-close-custom"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+
                         <i class="bi bi-x-lg"></i>
+
                     </button>
+
                 </div>
 
                 <div class="modal-body">
+
                     <input type="hidden" name="room_id" id="room_id">
 
-                    <div class="mb-4">
-                        <label class="modal-field-label">Room Name</label>
-                        <input type="text" name="room_name" id="room_name" class="form-control"
-                            placeholder="e.g. Serenity Suite 1" required>
+                    <!-- IMAGE PREVIEW -->
+                    <div class="mb-4 text-center">
+
+                        <img id="room_preview"
+                            src="../assets/img/room/default.jpg"
+                            class="img-fluid rounded-4 shadow-sm border"
+                            style="
+                                width:100%;
+                                height:220px;
+                                object-fit:cover;
+                            ">
+
                     </div>
 
+                    <!-- IMAGE UPLOAD -->
                     <div class="mb-4">
-                        <label class="modal-field-label">Room Type</label>
-                        <select name="room_type" id="room_type" class="form-select" required>
+
+                        <label class="modal-field-label">
+                            Room Image
+                        </label>
+
+                        <input type="file"
+                            name="room_image"
+                            id="room_image"
+                            class="form-control"
+                            accept="image/*"
+                            onchange="previewRoomImage(event)">
+
+                        <div class="field-hint">
+                            Upload room photo preview.
+                        </div>
+
+                    </div>
+
+                    <!-- ROOM NAME -->
+                    <div class="mb-4">
+
+                        <label class="modal-field-label">
+                            Room Name
+                        </label>
+
+                        <input type="text"
+                            name="room_name"
+                            id="room_name"
+                            class="form-control"
+                            placeholder="e.g. Serenity Suite 1"
+                            required>
+
+                    </div>
+
+                    <!-- ROOM TYPE -->
+                    <div class="mb-4">
+
+                        <label class="modal-field-label">
+                            Room Type
+                        </label>
+
+                        <select name="room_type"
+                                id="room_type"
+                                class="form-select"
+                                required
+                                onchange="handleRoomTypeChange(this.value)">
+
+                            <option value="" disabled selected hidden>Select Room Type</option>
                             <option value="Standard Room">Standard Room</option>
                             <option value="Couple Room">Couple Room</option>
                             <option value="Private Room">Private Room</option>
                             <option value="Premium Suite">Premium Suite</option>
+
                         </select>
+
                     </div>
 
+                    <!-- ADDITIONAL FEE -->
                     <div class="mb-2">
-                        <label class="modal-field-label">Additional Fee (₱)</label>
-                        <input type="number" step="0.01" name="additional_fee" id="additional_fee"
-                            class="form-control" value="0.00" required>
-                        <div class="field-hint">Fee charged to non-members or for premium upgrades.</div>
+
+                        <label class="modal-field-label">
+                            Additional Fee (₱)
+                        </label>
+
+                        <input type="number"
+                            step="0.01"
+                            name="additional_fee"
+                            id="additional_fee"
+                            class="form-control"
+                            value="0.00"
+                            required
+                            min="0" disabled>
+
+                        <div class="field-hint">
+                            Fee charged to non-members or for premium upgrades.
+                        </div>
+
                     </div>
+
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn-modal-save" onclick="saveRoom()">
-                        <i class="bi bi-check-lg"></i> Save Room
+
+                    <button type="button"
+                            class="btn-modal-cancel"
+                            data-bs-dismiss="modal">
+
+                        Cancel
+
                     </button>
+
+                    <button type="button"
+                            class="btn-modal-save"
+                            onclick="saveRoom()">
+
+                        <i class="bi bi-check-lg"></i>
+                        Save Room
+
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
     </div>
 </div>
@@ -820,26 +1278,168 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
         overlay.classList.remove('visible');
     });
 
-    // ── Edit Room (unchanged logic) ────────────────────────────────
-    function editRoom(data) {
-        document.getElementById('modalEyebrow').innerText  = 'Edit Room';
-        document.getElementById('roomModalTitle').innerText = 'Edit Room Details';
-        document.getElementById('room_id').value        = data.room_id;
-        document.getElementById('room_name').value      = data.room_name;
-        document.getElementById('room_type').value      = data.room_type;
-        document.getElementById('additional_fee').value = data.additional_fee;
-        new bootstrap.Modal(document.getElementById('roomModal')).show();
+    // ── View Room ──────────────────────────────────────────────────
+    let _currentRoomData = null;
+
+    function viewRoom(data) {
+        _currentRoomData = data;
+
+        // Left panel
+        document.getElementById('view_left_name').textContent      = data.room_name;
+        document.getElementById('view_left_type').textContent      = data.room_type;
+        document.getElementById('view_room_type_sub').textContent  = '@' + data.room_type.toLowerCase().replace(/\s+/g, '');
+
+        // Right panel – header
+        document.getElementById('view_room_name_title').textContent = data.room_name;
+        document.getElementById('view_room_type_sub').textContent   = data.room_type;
+
+        // Badges
+        const s   = (data.status || '').toLowerCase();
+        const cls = (s === 'active' || s === 'available') ? 'badge-available'
+                : (s === 'archived' ? 'badge-archived' : 'badge-other');
+        const statusBadge = document.getElementById('view_badge_status');
+        statusBadge.className = 'badge-status ' + cls;
+        statusBadge.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+
+        document.getElementById('view_badge_type').textContent = data.room_type;
+
+        // Fields
+        document.getElementById('view_field_type').textContent   = data.room_type;
+        document.getElementById('view_field_status').textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+        document.getElementById('view_field_fee').innerHTML      = '<span style="font-size:.85rem;color:var(--gold);margin-right:2px;">₱</span>'
+                                                                + parseFloat(data.additional_fee).toFixed(2);
+
+        // Image
+        const img = data.room_image && data.room_image !== ''
+                ? '../assets/img/room/' + data.room_image
+                : '../assets/img/room/default.jpg';
+        document.getElementById('view_room_image').src = img;
+
+        new bootstrap.Modal(document.getElementById('roomViewModal')).show();
     }
 
-    document.getElementById('roomModal').addEventListener('hidden.bs.modal', function () {
-        document.getElementById('roomForm').reset();
-        document.getElementById('room_id').value = '';
-        document.getElementById('modalEyebrow').innerText   = 'New Room';
-        document.getElementById('roomModalTitle').innerText = 'Add a Spa Room';
-    });
+    function openEditFromView() {
+        // Close view modal, then open edit modal with stored data
+        const viewModalEl = document.getElementById('roomViewModal');
+        const viewModal   = bootstrap.Modal.getInstance(viewModalEl);
+        if (viewModal) viewModal.hide();
 
-    // ── Save Room (unchanged logic) ────────────────────────────────
-    function saveRoom() {
+        viewModalEl.addEventListener('hidden.bs.modal', function onHidden() {
+            viewModalEl.removeEventListener('hidden.bs.modal', onHidden);
+            editRoom(_currentRoomData);
+        });
+    }
+    
+    
+    // ── Edit Room (unchanged logic) ────────────────────────────────
+    function editRoom(data) {
+
+    // Console log whole object
+    console.log("ROOM DATA:", data);
+
+    document.getElementById('modalEyebrow').innerText  = 'Edit Room';
+    document.getElementById('roomModalTitle').innerText = 'Edit Room Details';
+
+    document.getElementById('room_id').value        = data.room_id;
+    document.getElementById('room_name').value      = data.room_name;
+    document.getElementById('room_type').value      = data.room_type;
+    document.getElementById('additional_fee').value = data.additional_fee;
+    handleRoomTypeChange(data.room_type);
+
+    // Default image
+    let imagePath = '../assets/img/room/default.jpg';
+
+    // Debug image field
+
+    if (data.room_image && data.room_image !== '') {
+
+        imagePath = '../assets/img/room/' + data.room_image;
+    }
+
+    // Final image path
+    console.log("FINAL IMAGE PATH:", imagePath);
+
+    document.getElementById('room_preview').src = imagePath;
+
+    new bootstrap.Modal(
+        document.getElementById('roomModal')
+    ).show();
+}
+
+    // document.getElementById('roomModal')
+    // .addEventListener('show.bs.modal', function () {
+    //     // Disable fee field every time modal opens fresh
+    //     const feeInput = document.getElementById('additional_fee');
+    //     feeInput.value    = '0.00';
+    //     feeInput.disabled = true;
+    //     feeInput.readOnly = false;
+    //     feeInput.style.background  = '';
+    //     feeInput.style.color       = '';
+    //     feeInput.style.cursor      = '';
+    //     feeInput.style.borderColor = '';
+
+    //     // Reset room type to placeholder
+    //     document.getElementById('room_type').value = '';
+    // });
+
+        document.getElementById('roomModal')
+        .addEventListener('hidden.bs.modal', function () {
+
+            document.getElementById('roomForm').reset();
+
+            document.getElementById('room_id').value = '';
+
+            document.getElementById('modalEyebrow').innerText = 'New Room';
+
+            document.getElementById('roomModalTitle').innerText = 'Add a Spa Room';
+
+            // Reset image preview
+            document.getElementById('room_preview').src =
+                '../assets/img/room/default.jpg';
+            
+            handleRoomTypeChange('');   // unlock the fee field on close
+
+        });
+
+        function saveRoom() {
+            // ── Validation ──────────────────────────────────────────
+            const roomName = document.getElementById('room_name').value.trim();
+            const roomType = document.getElementById('room_type').value.trim();
+            const fee      = document.getElementById('additional_fee').value.trim();
+
+            const roomId    = document.getElementById('room_id').value;
+            const imageFile = document.getElementById('room_image').files[0];
+
+    // Image is required only when adding a new room
+    if (!roomId && !imageFile) {
+        Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please upload a Room Image.' });
+        document.getElementById('room_image').focus();
+        return;
+    }
+
+    if (!roomName) {
+        Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please enter a Room Name.' });
+        document.getElementById('room_name').focus();
+        return;
+    }
+
+        if (!roomName) {
+            Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please enter a Room Name.' });
+            document.getElementById('room_name').focus();
+            return;
+        }
+        if (!roomType) {
+            Swal.fire({ icon: 'warning', title: 'Missing Field', text: 'Please select a Room Type.' });
+            document.getElementById('room_type').focus();
+            return;
+        }
+        if (fee === '' || isNaN(fee) || Number(fee) < 0) {
+            Swal.fire({ icon: 'warning', title: 'Invalid Fee', text: 'Please enter a valid Additional Fee (0 or more).' });
+            document.getElementById('additional_fee').focus();
+            return;
+        }
+
+        // ── Submit ───────────────────────────────────────────────
         const form     = document.getElementById('roomForm');
         const formData = new FormData(form);
         formData.append('save_room', '1');
@@ -887,12 +1487,87 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
 
     // ── Live search (unchanged logic) ─────────────────────────────
     document.getElementById('roomSearch').addEventListener('keyup', function () {
-        const search = this.value.toLowerCase();
-        document.querySelectorAll('#roomTable tbody tr').forEach(row => {
-            const name = row.querySelector('.room-name');
-            row.style.display = name && name.textContent.toLowerCase().includes(search) ? '' : 'none';
-        });
+    const search = this.value.toLowerCase();
+    const rows   = document.querySelectorAll('#roomTable tbody tr:not(#noSearchResult)');
+    let visible  = 0;
+
+    rows.forEach(row => {
+        const name = row.querySelector('.room-name');
+        const show = name && name.textContent.toLowerCase().includes(search);
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
     });
+
+    let noResult = document.getElementById('noSearchResult');
+    if (visible === 0) {
+        if (!noResult) {
+            noResult = document.createElement('tr');
+            noResult.id = 'noSearchResult';
+            noResult.innerHTML = `<td colspan="5">
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="bi bi-search"></i></div>
+                    <div class="empty-state-text">No rooms match "<strong>${this.value}</strong>"</div>
+                </div></td>`;
+            document.querySelector('#roomTable tbody').appendChild(noResult);
+        } else {
+            noResult.querySelector('.empty-state-text').innerHTML =
+                `No rooms match "<strong>${this.value}</strong>"`;
+            noResult.style.display = '';
+        }
+    } else if (noResult) {
+        noResult.style.display = 'none';
+    }
+});
+
+    // ── Room Type → Fee Lock ───────────────────────────────────────────
+    function handleRoomTypeChange(type) {
+    const feeInput = document.getElementById('additional_fee');
+
+    if (!type) {
+        // No room type selected yet — keep fee disabled
+        feeInput.value    = '0.00';
+        feeInput.disabled = true;
+        feeInput.readOnly = false;
+        feeInput.style.background  = '';
+        feeInput.style.color       = '';
+        feeInput.style.cursor      = '';
+        feeInput.style.borderColor = '';
+    } else if (type === 'Standard Room') {
+        // Standard Room — enable but lock to 0
+        feeInput.value    = '0.00';
+        feeInput.disabled = false;
+        feeInput.readOnly = true;
+        feeInput.style.background  = 'var(--gold-dim)';
+        feeInput.style.color       = 'var(--muted)';
+        feeInput.style.cursor      = 'not-allowed';
+        feeInput.style.borderColor = 'rgba(201,169,110,.15)';
+    } else {
+        // Other room types — fully editable
+        feeInput.disabled = false;
+        feeInput.readOnly = false;
+        feeInput.style.background  = '';
+        feeInput.style.color       = '';
+        feeInput.style.cursor      = '';
+        feeInput.style.borderColor = '';
+    }
+}
+
+    function previewRoomImage(event) {
+
+        const file = event.target.files[0];
+
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+
+            document.getElementById('room_preview').src = e.target.result;
+        };
+
+        reader.readAsDataURL(file);
+    }
 </script>
 </body>
+
 </html>

@@ -9,11 +9,15 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Fetch appointments with joined data for Treatment and Therapist names
-$sql = "SELECT a.*, t.name AS treatment_name, th.first_name AS therapist_fname, th.last_name AS therapist_lname 
+$sql = "SELECT a.*, 
+               COALESCE(t.name, p.promo_name, pkg.name, 'N/A') AS treatment_name,
+               th.first_name AS therapist_fname, 
+               th.last_name AS therapist_lname 
         FROM appointments a
-        JOIN treatments t ON a.treatment_id = t.treatment_id
-        JOIN therapists th ON a.therapist_id = th.therapist_id
+        LEFT JOIN treatments t   ON a.treatment_id = t.treatment_id
+        LEFT JOIN promotions p   ON a.promo_id = p.promo_id
+        LEFT JOIN packages pkg   ON a.package_id = pkg.package_id
+        JOIN therapists th       ON a.therapist_id = th.therapist_id
         WHERE a.user_id = ? 
         ORDER BY a.appointment_date DESC, a.appointment_time DESC";
 
@@ -56,21 +60,125 @@ $records = $stmt->fetchAll();
         letter-spacing: -0.01em;
     }
 
-    .hero-tagline {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 4px;
-        color: var(--brand-gold);
-        font-size: 0.85rem;
-        display: inline-block;
-    }
+    /* ── HERO ─────────────────────────────────────────────────── */
+.records-hero {
+    position: relative;
+    min-height: 88vh;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    overflow: hidden;
+    background: var(--the-dark);
+    margin-bottom: 5rem;
+}
 
-    /* Header Padding Adjustment below Navbar */
-    .lux-hero-container {
-        padding-top: 6.5rem !important;
-        margin-bottom: 5rem;
-    }
+.records-hero::before {
+    content: '';
+    position: absolute;
+    left: 80px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--brand-gold), transparent);
+    opacity: 0.6;
+    z-index: 1;
+}
+
+.records-hero::after {
+    content: 'RECORDS';
+    position: absolute;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(5rem, 18vw, 17rem);
+    font-weight: 600;
+    color: rgba(255,255,255,0.025);
+    bottom: -0.1em; right: -0.04em;
+    white-space: nowrap;
+    pointer-events: none;
+    letter-spacing: -0.02em;
+    z-index: 1;
+}
+
+.records-hero__content {
+    position: relative;
+    z-index: 2;
+    padding: 0 80px 80px;
+    max-width: 680px;
+}
+
+.hero-tagline {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    color: var(--brand-gold);
+    font-size: 0.72rem;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.hero-tagline::before {
+    content: '';
+    display: block;
+    width: 40px; height: 1px;
+    background: var(--brand-gold);
+}
+
+.records-hero__title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    color: var(--pure-white);
+    line-height: 1.05;
+    margin-bottom: 28px;
+}
+.records-hero__title em {
+    font-style: italic;
+    color: var(--gold-light);
+}
+
+.records-hero__sub {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.55);
+    font-weight: 300;
+    max-width: 420px;
+    letter-spacing: 0.01em;
+}
+
+.scroll-cue {
+    position: absolute;
+    bottom: 40px;
+    right: 80px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+.scroll-cue__line {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, var(--brand-gold), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+    0%, 100% { opacity: 0.4; transform: scaleY(1); }
+    50%       { opacity: 1;   transform: scaleY(0.7); }
+}
+
+@media (max-width: 1024px) {
+    .records-hero__content { padding: 0 32px 64px; }
+    .records-hero::before  { left: 32px; }
+    .scroll-cue            { right: 32px; }
+}
+@media (max-width: 768px) {
+    .records-hero__content { padding: 0 20px 52px; }
+    .records-hero::before  { display: none; }
+    .scroll-cue            { right: 20px; }
+}
 
     /* Structured Geometry Content Panel */
     .record-card-luxe {
@@ -218,16 +326,17 @@ $records = $stmt->fetchAll();
 </style>
 
 <div class="luxe-records-context">
-    <div class="container pb-5">
-        
-        <div class="text-center lux-hero-container">
-            <span class="hero-tagline">Personal Sanctuary Activity</span>
-            <h1 class="display-4 mt-2 mb-3" style="font-weight: 300;">My Wellness <span style="font-weight: 600;">Records</span></h1>
-            <p class="text-muted mx-auto" style="max-width: 540px; font-size: 0.95rem; letter-spacing: 0.5px;">
-                Tracking your structural aesthetic and ritual arrangements timeline since <?= date('F Y', strtotime($_SESSION['created_at'] ?? 'now')) ?>
-            </p>
-            <div class="mx-auto" style="width: 40px; height: 1px; background: var(--brand-gold); margin-top: 24px;"></div>
-        </div>
+    <section class="records-hero">
+    <div class="records-hero__content">
+        <p class="hero-tagline">Personal Sanctuary Activity</p>
+        <h1 class="records-hero__title">My Wellness<br><em>Records</em></h1>
+        <p class="records-hero__sub">Tracking your ritual arrangements timeline since <?= date('F Y', strtotime($_SESSION['created_at'] ?? 'now')) ?>.</p>
+    </div>
+    <div class="scroll-cue">
+        <div class="scroll-cue__line"></div>
+        <span>Scroll</span>
+    </div>
+</section>
 
         <div class="card record-card shadow-sm overflow-hidden record-card-luxe">
             <div class="table-responsive">
@@ -265,7 +374,7 @@ $records = $stmt->fetchAll();
                                         <?php if(isset($r['payment_type']) && $r['payment_type'] === 'membership'): ?>
                                             <span class="membership-pill">Member Credit</span>
                                         <?php else: ?>
-                                            <span class="data-primary" style="color: var(--the-dark); font-weight: 700;">₱<?= number_format($r['amount'], 2) ?></span>
+                                            <span class="data-primary" style="color: var(--the-dark); font-weight: 700;">₱<?= number_format($r['total_amount'], 2) ?></span>
                                         <?php endif; ?>
                                     </td>
                                     

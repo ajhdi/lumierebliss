@@ -53,36 +53,37 @@ h1, h2, h3, h4, h5 {
 .artisans-hero {
     position: relative;
     background: var(--the-dark);
-    min-height: 64vh;
+    min-height: 88vh;
     display: flex;
     align-items: flex-end;
+    justify-content: flex-start;
     overflow: hidden;
 }
 
 /* Decorative large background text */
+/* Vertical gold line accent */
 .artisans-hero::before {
-    content: 'ARTISANS';
+    content: '';
+    position: absolute;
+    left: 80px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--brand-gold), transparent);
+    opacity: 0.6;
+}
+
+/* Ghosted display text */
+.artisans-hero::after {
+    content: 'THERAPISTS';
     position: absolute;
     font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(5rem, 18vw, 17rem);
     font-weight: 600;
-    font-size: clamp(6rem, 18vw, 18rem);
-    color: rgba(255,255,255,0.03);
-    bottom: -0.15em;
-    right: -0.05em;
+    color: rgba(255,255,255,0.025);
+    bottom: -0.1em; right: -0.04em;
     white-space: nowrap;
     pointer-events: none;
     letter-spacing: -0.02em;
-    line-height: 1;
-}
-
-/* Vertical gold line accent */
-.artisans-hero::after {
-    content: '';
-    position: absolute;
-    left: 80px; top: 0; bottom: 0;
-    width: 1px;
-    background: linear-gradient(to bottom, transparent, var(--brand-gold) 40%, transparent);
-    opacity: 0.5;
 }
 
 .artisans-hero__content {
@@ -129,6 +130,31 @@ h1, h2, h3, h4, h5 {
     font-weight: 300;
     max-width: 400px;
     letter-spacing: 0.01em;
+}
+
+.scroll-cue {
+    position: absolute;
+    bottom: 40px;
+    right: 80px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+.scroll-cue__line {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, var(--brand-gold), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+    0%, 100% { opacity: 0.4; transform: scaleY(1); }
+    50%       { opacity: 1;   transform: scaleY(0.7); }
 }
 
 /* ── CONTAINER ───────────────────────────────────────────── */
@@ -463,7 +489,8 @@ h1, h2, h3, h4, h5 {
 @media (max-width: 1024px) {
     .container-xl { padding: 0 32px; }
     .artisans-hero__content { padding: 0 32px 64px; }
-    .artisans-hero::after { left: 32px; }
+    .artisans-hero::before { left: 32px; }
+    .scroll-cue { right: 32px; }
 }
 @media (max-width: 768px) {
     :root { --section-gap: 72px; }
@@ -473,7 +500,8 @@ h1, h2, h3, h4, h5 {
     .modal-split__body { padding: 36px 28px; max-height: none; }
     .container-xl { padding: 0 20px; }
     .artisans-hero__content { padding: 0 20px 52px; }
-    .artisans-hero::after { display: none; }
+    .artisans-hero::before { display: none; }
+    .scroll-cue { right: 20px; }
 }
 @media (max-width: 480px) {
     .therapists-grid { grid-template-columns: 1fr; }
@@ -485,9 +513,13 @@ h1, h2, h3, h4, h5 {
      ══════════════════════════════════════════════════════════ -->
 <section class="artisans-hero">
     <div class="artisans-hero__content">
-        <p class="artisans-hero__eyebrow">Lumiére Studio</p>
+        <p class="artisans-hero__eyebrow">Lumiére Bliss</p>
         <h1 class="artisans-hero__title">The <em>Artisans</em><br>of Bliss</h1>
         <p class="artisans-hero__sub">Professional hands dedicated to your complete restoration.</p>
+    </div>
+    <div class="scroll-cue">
+        <div class="scroll-cue__line"></div>
+        <span>Scroll</span>
     </div>
 </section>
 

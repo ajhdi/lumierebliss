@@ -107,27 +107,104 @@ include '../includes/header.php';
     .gold-divider { width: 50px; height: 1px; background: var(--gold); margin: 30px auto; }
     .short-dark-divider { width: 50px; height: 1px; background: var(--dark); margin: 0 auto; opacity: 0.3; }
 
-    .custom-container { max-width: 1000px; margin: 0 auto; }
-    .membership-brief {
-        background: #ffffff;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 45px 40px;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        transition: transform 0.3s ease;
-    }
-    
-    .membership-brief.active-tier { 
-        background: var(--dark); 
-        color: white; 
-        box-shadow: 0 12px 30px rgba(0,0,0,0.15);
-    }
-    
-    .membership-brief ul li { font-size: 15px; margin-bottom: 12px; color: var(--muted); }
-    .active-tier ul li { color: rgba(255,255,255,0.7); }
+    .custom-container { max-width: 1200px; margin: 0 auto; }
+
+.membership-brief {
+    background: #ffffff;
+    border: 1px solid rgba(201, 169, 110, 0.25);
+    border-radius: 0 !important;
+    padding: 52px 48px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    box-shadow: none !important;
+}
+
+.membership-brief.active-tier {
+    background: #111111;
+    border: 1px solid rgba(201, 169, 110, 0.2);
+    color: white;
+    box-shadow: none !important;
+}
+
+.membership-brief:hover { transform: translateY(-4px); }
+
+.membership-brief h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 2.2rem;
+    margin-bottom: 0;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(201, 169, 110, 0.25);
+}
+
+.active-tier h3 {
+    border-bottom: 1px solid rgba(201, 169, 110, 0.2);
+}
+
+.membership-brief ul { margin-top: 28px; }
+
+.membership-brief ul li {
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+    color: var(--muted);
+    padding-left: 16px;
+    border-left: 2px solid rgba(201, 169, 110, 0.3);
+    line-height: 1.5;
+    list-style: none;
+}
+
+.active-tier ul li {
+    color: #a39887;
+    border-left: 2px solid rgba(201, 169, 110, 0.35);
+}
+
+.btn-discover-std {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #111111;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 44px;
+    transition: color 0.3s ease, gap 0.3s ease;
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+}
+.btn-discover-std::after {
+    content: '';
+    display: block;
+    width: 28px; height: 1px;
+    background: #111111;
+    transition: width 0.3s ease;
+}
+.btn-discover-std:hover { color: var(--gold); gap: 14px; }
+.btn-discover-std:hover::after { background: var(--gold); width: 36px; }
+
+.btn-luxe {
+    background: var(--gold);
+    color: white !important;
+    border-radius: 0 !important;
+    padding: 14px 35px;
+    font-size: 0.72rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    margin-top: 44px;
+    transition: background 0.3s ease, letter-spacing 0.3s ease;
+}
+.btn-luxe:hover {
+    background: var(--dark);
+    letter-spacing: 4px;
+}
 
     .brand-content-wrapper { max-width: 500px; padding: 80px 20px; }
     .brand-description { line-height: 1.8; font-size: 17px; font-weight: 400; color: var(--muted); }
@@ -199,38 +276,43 @@ include '../includes/header.php';
 
 <section class="exclusivity-section" style="background-color: var(--warm-white);" data-aos="fade-up">
     <div class="container custom-container">
-        <div class="text-center mb-5">
-            <h6 class="concept-label mb-2">Exclusivity</h6>
-            <h2 class="h1 mb-2">Elevate Your Experience</h2>
-            <p class="brand-description small">Memberships are managed exclusively onsite by our Lumiére administrators.</p>
-        </div>
+        <div class="text-center mb-5 pb-2">
+    <span style="font-family:'DM Sans',sans-serif; font-size:0.72rem; font-weight:500; letter-spacing:5px; text-transform:uppercase; color:var(--gold); display:inline-flex; align-items:center; gap:14px;">
+        <span style="display:block; width:40px; height:1px; background:var(--gold);"></span>
+        Exclusivity
+    </span>
+    <h2 style="font-family:'Cormorant Garamond',serif; font-weight:300; font-size:clamp(2rem,4vw,3rem); margin-top:16px; margin-bottom:16px;">Elevate Your <em style="font-style:italic; color:var(--gold);">Experience</em></h2>
+    <p style="font-size:0.95rem; color:var(--muted); max-width:480px; margin:0 auto;">Avail the <strong style="color:var(--dark); font-weight:600;">Lumiére Circle</strong> membership onsite and unlock a world of exclusive privileges curated for devoted members.</p>
+    <div style="width:40px; height:1px; background:var(--gold); margin:28px auto 0;"></div>
+</div>
         <div class="row g-4 justify-content-center">
-            <div class="col-md-5">
-                <div class="membership-brief">
-                    <div>
-                        <h3 class="h3 mb-4">The Guest</h3>
-                        <ul class="list-unstyled">
-                            <li>Access to Standard Rooms</li>
-                            <li>Individual Treatment Options</li>
-                            <li>Standard Scheduling</li>
-                        </ul>
-                    </div>
-                    <a href="signin.php" class="btn-discover-std">LEARN MORE</a>
-                </div>
-            </div>
-            <div class="col-md-5">
-                <div class="membership-brief active-tier">
-                    <div>
-                        <h3 class="h3 mb-4 text-white">The Lumiére Circle</h3>
-                        <ul class="list-unstyled">
-                            <li>2 Free Semi-Luxury Room Uses</li>
-                            <li>Priority Therapist Selection</li>
-                            <li>Exclusive Monthly Rituals</li>
-                        </ul>
-                    </div>
-                    <a href="signin.php" class="btn-luxe btn-gold w-100 text-center">VIEW ALL OFFERS</a>
-                </div>
-            </div>
+            <<div class="col-md-6 col-lg-5">
+    <div class="membership-brief">
+        <div>
+            <h3 class="h3 mb-4">The Guest</h3>
+            <ul class="list-unstyled">
+                <li>Access to Standard Rooms</li>
+                <li>Individual Treatment Options</li>
+                <li>Standard Scheduling</li>
+            </ul>
+        </div>
+        <a href="signin.php" class="btn-discover-std">LEARN MORE</a>
+    </div>
+</div>
+<div class="col-md-6 col-lg-5">
+    <div class="membership-brief active-tier">
+        <div>
+            <h3 class="h3 mb-4 text-white">The Lumiére Circle</h3>
+            <ul class="list-unstyled">
+                <li>Complimentary Semi-Luxury Room Upgrade</li>
+                <li>Elevated Member Booking Privileges</li>
+                <li>Personalized Spa Experience</li>
+                <li>Access to Member-Exclusive Promotions</li>
+            </ul>
+        </div>
+        <a href="signin.php" class="btn-luxe w-100 text-center">VIEW ALL OFFERS</a>
+    </div>
+</div>
         </div>
     </div>
 </section>

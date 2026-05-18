@@ -1004,21 +1004,77 @@ $users               = $pdo->query("SELECT * FROM users ORDER BY created_at DESC
 
     // ── Live search: therapists ────────────────────────────────────
     document.getElementById('therapistSearch').addEventListener('keyup', function () {
-        const q = this.value.toLowerCase();
-        document.querySelectorAll('#therapistTable tbody tr').forEach(row => {
+        const q    = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#therapistTable tbody tr:not(#noTherapistResult)');
+        let visible = 0;
+
+        rows.forEach(row => {
             const u = row.querySelector('.therapist-username')?.textContent.toLowerCase() || '';
-            const n = row.querySelector('.therapist-name')?.textContent.toLowerCase() || '';
-            row.style.display = (u.includes(q) || n.includes(q)) ? '' : 'none';
+            const n = row.querySelector('.therapist-name')?.textContent.toLowerCase()    || '';
+            const show = u.includes(q) || n.includes(q);
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
         });
+
+        let noResult = document.getElementById('noTherapistResult');
+        if (visible === 0) {
+            if (!noResult) {
+                noResult = document.createElement('tr');
+                noResult.id = 'noTherapistResult';
+                noResult.innerHTML = `<td colspan="99">
+                    <div style="text-align:center; padding: 56px 24px;">
+                        <i class="bi bi-search" style="font-size:2.2rem; color:var(--gold-light); opacity:.6; display:block; margin-bottom:18px;"></i>
+                        <p style="font-family:'DM Sans',sans-serif; font-size:.88rem; color:var(--muted); font-weight:400; letter-spacing:.01em;">
+                            No therapists match "<strong style="font-weight:700; color:var(--dark-soft);">${this.value}</strong>"
+                        </p>
+                    </div>
+                </td>`;
+                document.querySelector('#therapistTable tbody').appendChild(noResult);
+            } else {
+                noResult.querySelector('p').innerHTML =
+                    `No therapists match "<strong style="font-weight:700; color:var(--dark-soft);">${this.value}</strong>"`;
+                noResult.style.display = '';
+            }
+        } else if (noResult) {
+            noResult.style.display = 'none';
+        }
     });
 
     // ── Live search: users ─────────────────────────────────────────
     document.getElementById('userSearch').addEventListener('keyup', function () {
-        const q = this.value.toLowerCase();
-        document.querySelectorAll('#userTable tbody tr').forEach(row => {
+        const q    = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#userTable tbody tr:not(#noUserResult)');
+        let visible = 0;
+
+        rows.forEach(row => {
             const n = row.querySelector('.user-name')?.textContent.toLowerCase() || '';
-            row.style.display = n.includes(q) ? '' : 'none';
+            const show = n.includes(q);
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
         });
+
+        let noResult = document.getElementById('noUserResult');
+        if (visible === 0) {
+            if (!noResult) {
+                noResult = document.createElement('tr');
+                noResult.id = 'noUserResult';
+                noResult.innerHTML = `<td colspan="5">
+                    <div style="text-align:center; padding: 56px 24px;">
+                        <i class="bi bi-search" style="font-size:2.2rem; color:var(--gold-light); opacity:.6; display:block; margin-bottom:18px;"></i>
+                        <p style="font-family:'DM Sans',sans-serif; font-size:.88rem; color:var(--muted); font-weight:400; letter-spacing:.01em;">
+                             No rooms match "<strong style="font-weight:700; color:var(--dark-soft);">${this.value}</strong>"
+                        </p>
+                    </div>
+                  </td>`;
+                document.querySelector('#userTable tbody').appendChild(noResult);
+            } else {
+                noResult.querySelector('p').innerHTML =
+                    `No rooms match "<strong style="font-weight:700; color:var(--dark-soft);">${this.value}</strong>"`;
+                noResult.style.display = '';
+}
+        } else if (noResult) {
+            noResult.style.display = 'none';
+        }
     });
 </script>
 </body>

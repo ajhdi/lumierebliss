@@ -2,6 +2,7 @@
 // /admin/signin_admin.php
 session_start();
 require_once '../config/db.php';
+require_once '../includes/log_action.php';
 
 $error = "";
 
@@ -17,11 +18,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // For initial setup, we check plain text or hashed based on your preference
     if ($admin && ($password === $admin['password'] || password_verify($password, $admin['password']))) {
         $_SESSION['admin_id'] = $admin['admin_id'];
+        $_SESSION['admin_username'] = $admin['username'];
         $_SESSION['role'] = 'admin';
+        logAction($pdo, 'Admin logged in successfully.');
         header("Location: dashboard.php");
         exit();
     } else {
         $error = "Invalid username or password.";
+        // Log failed attempt using the typed username
+        $stmt2 = $pdo->prepare("
+    INSERT INTO system_logs (user_type, user_identifier, action)
+    VALUES (?, ?, ?)
+");
+
+$stmt2->execute([
+    'Admin',
+    $username,
+    'Failed login attempt.'
+]);
     }
 }
 ?>

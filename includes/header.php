@@ -163,7 +163,7 @@ $is_home_page = ($current_page === 'index.php' || $current_page === 'home.php');
                 <?php if($is_logged_in): ?>
                     <li class="nav-item"><a class="nav-link" href="record.php">Records</a></li>
                 <?php endif; ?>
-                <li class="nav-item"><a class="nav-link" href="<?php echo isset($is_guest) ? 'signin.php' : 'promotion.php'; ?>">Promotions</a></li>
+                <li class="nav-item"><a class="nav-link" href="<?php echo isset($is_guest) ? 'signin.php' : 'promotion.php'; ?>">Offers</a></li>
             </ul>
 
             <div class="action-area">

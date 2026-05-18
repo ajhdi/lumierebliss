@@ -2,12 +2,14 @@
 // /admin/dashboard.php
 session_start();
 require_once '../config/db.php';
+require_once '../includes/log_action.php';
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: signin_admin.php");
     exit();
 }
 
+logAction($pdo, "Opened Dashboard");
 // 1. ANALYTICS: Basic Counts
 $therapist_count = $pdo->query("SELECT COUNT(*) FROM therapists WHERE status='active'")->fetchColumn();
 $room_count      = $pdo->query("SELECT COUNT(*) FROM rooms WHERE status='available'")->fetchColumn();
@@ -344,6 +346,27 @@ $display_peak = $peak_time ? date("g:i A", strtotime($peak_time['hour'] . ":00")
         .stat-card:nth-child(4) { animation-delay: .26s; }
         .revenue-card  { animation: fadeUp .5s .3s ease both; }
         .insights-card { animation: fadeUp .5s .38s ease both; }
+
+        /* ─── Custom Scrollbar ───────────────────────────────────────── */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--cream);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--gold-light);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--gold);
+        }
+
+        /* ─── Sidebar Scrollbar Override ────────────────────────────── */
+        .sidebar-nav::-webkit-scrollbar {
+            width: 0px;
+        }
+
     </style>
 </head>
 <body>

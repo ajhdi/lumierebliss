@@ -1,7 +1,6 @@
 <?php
 session_start();
 require_once '../config/db.php';
-require_once '../includes/log_action.php';
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: signin_admin.php");
@@ -72,18 +71,12 @@ if (isset($_POST['save_room'])) {
                 ");
 
                 $stmt->execute([
-    $room_name,
-    $room_type,
-    $fee,
-    $image_name,
-    $id
-]);
-
-logAction($pdo, "Updated room: $room_name (Type: $room_type, with new image)");
-echo json_encode([
-    "status"  => "success",
-    "message" => "Room updated successfully"
-]);
+                    $room_name,
+                    $room_type,
+                    $fee,
+                    $image_name,
+                    $id
+                ]);
 
             } else {
 
@@ -96,19 +89,17 @@ echo json_encode([
                 ");
 
                 $stmt->execute([
-    $room_name,
-    $room_type,
-    $fee,
-    $id
-]);
+                    $room_name,
+                    $room_type,
+                    $fee,
+                    $id
+                ]);
+            }
 
-logAction($pdo, "Updated room: $room_name (Type: $room_type)");
-echo json_encode([
-    "status"  => "success",
-    "message" => "Room updated successfully"
-]);
-
-            }  // closes: if ($image_name)
+            echo json_encode([
+                "status"  => "success",
+                "message" => "Room updated successfully"
+            ]);
 
         } else {
 
@@ -132,11 +123,10 @@ echo json_encode([
                 $image_name
             ]);
 
-           logAction($pdo, "Added room: $room_name (Type: $room_type)");
-echo json_encode([
-    "status"  => "success",
-    "message" => "Room added successfully"
-]);
+            echo json_encode([
+                "status"  => "success",
+                "message" => "Room added successfully"
+            ]);
         }
 
     } catch (Exception $e) {
@@ -154,14 +144,8 @@ if (isset($_POST['archive_room_id'])) {
     header('Content-Type: application/json');
     try {
         $stmt = $pdo->prepare("UPDATE rooms SET status = 'archived' WHERE room_id = ?");
-$stmt->execute([$_POST['archive_room_id']]);
-
-$archivedRoom = $pdo->prepare("SELECT room_name FROM rooms WHERE room_id = ?");
-$archivedRoom->execute([$_POST['archive_room_id']]);
-$archivedRoomName = $archivedRoom->fetchColumn();
-logAction($pdo, "Archived room: $archivedRoomName");
-
-echo json_encode(["status" => "success", "message" => "Room archived successfully"]);
+        $stmt->execute([$_POST['archive_room_id']]);
+        echo json_encode(["status" => "success", "message" => "Room archived successfully"]);
     } catch (Exception $e) {
         echo json_encode(["status" => "error", "message" => $e->getMessage()]);
     }
@@ -865,6 +849,9 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
                                     <button class="btn-icon" title="View" onclick='viewRoom(<?= json_encode($r) ?>)'>
                                         <i class="bi bi-eye"></i>
                                     </button>
+                                    <button class="btn-icon" title="Edit" onclick='editRoom(<?= json_encode($r) ?>)'>
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
                                     <button class="btn-icon danger" title="Archive" onclick="archiveRoom(<?= (int)$r['room_id'] ?>)">
                                         <i class="bi bi-archive"></i>
                                     </button>
@@ -1125,112 +1112,7 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
         </div>
     </div>
 </div>
-        <div class="modal-content" style="border-radius:var(--radius-lg); overflow:hidden; border:none; box-shadow:var(--shadow-deep); display:flex; flex-direction:row; min-height:420px;">
-
-            <!-- LEFT PANEL -->
-            <div class="view-modal-left" style="
-                width:220px;
-                flex-shrink:0;
-                background:var(--dark);
-                display:flex;
-                flex-direction:column;
-                align-items:center;
-                justify-content:flex-end;
-                padding:28px 20px;
-                position:relative;
-                overflow:hidden;
-            ">
-                <!-- Gold ambient glow -->
-                <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 40% 20%,rgba(201,169,110,.10) 0%,transparent 65%);pointer-events:none;"></div>
-
-                <!-- Room image fills the top -->
-                <img id="view_room_image"
-                     src="../assets/img/room/default.jpg"
-                     style="
-                        position:absolute;
-                        inset:0;
-                        width:100%;
-                        height:100%;
-                        object-fit:cover;
-                        opacity:.35;
-                        border-radius:0;
-                     ">
-
-                <!-- Gradient overlay so text is readable -->
-                <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(26,26,26,.92) 40%,transparent 100%);pointer-events:none;"></div>
-
-                <!-- Type + Name -->
-                <div style="position:relative;z-index:1;text-align:center;">
-                    <div id="view_room_type_left" style="
-                        font-size:.62rem;
-                        font-weight:700;
-                        letter-spacing:.2em;
-                        text-transform:uppercase;
-                        color:var(--gold);
-                        margin-bottom:8px;
-                    "></div>
-                    <div id="view_room_name_left" style="
-                        font-family:'Cormorant Garamond',serif;
-                        font-weight:600;
-                        font-size:1.25rem;
-                        color:var(--white);
-                        line-height:1.25;
-                    "></div>
-                </div>
-            </div>
-
-            <!-- RIGHT PANEL -->
-            <div style="flex:1;background:var(--cream);display:flex;flex-direction:column;">
-
-                <!-- Header -->
-                <div style="padding:28px 30px 18px;border-bottom:1px solid rgba(201,169,110,.15);">
-                    <div style="font-size:.62rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;">Room Profile</div>
-                    <div id="view_room_name_title" style="font-family:'Cormorant Garamond',serif;font-weight:600;font-size:1.8rem;color:var(--dark);line-height:1.15;"></div>
-                    <div id="view_room_type_sub" style="font-size:.78rem;color:var(--muted);margin-top:4px;letter-spacing:.04em;"></div>
-                </div>
-
-                <!-- Badges -->
-                <div style="padding:16px 30px;display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid rgba(201,169,110,.12);">
-                    <span id="view_badge_status" class="badge-status"></span>
-                    <span id="view_badge_type" class="badge-type"></span>
-                </div>
-
-                <!-- Fields grid -->
-                <div style="padding:22px 30px;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:20px 24px;">
-                    <div>
-                        <div style="font-size:.62rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">Room Type</div>
-                        <div id="view_field_type" style="font-size:.9rem;color:var(--dark);font-weight:500;"></div>
-                    </div>
-                    <div>
-                        <div style="font-size:.62rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">Status</div>
-                        <div id="view_field_status" style="font-size:.9rem;color:var(--dark);font-weight:500;"></div>
-                    </div>
-                    <div style="grid-column:1/-1;">
-                        <div style="font-size:.62rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">Additional Fee</div>
-                        <div id="view_field_fee" style="font-family:'Cormorant Garamond',serif;font-weight:600;font-size:1.45rem;color:var(--dark);"></div>
-                    </div>
-                </div>
-
-                <!-- Footer -->
-                <div style="padding:18px 30px 26px;border-top:1px solid rgba(201,169,110,.12);display:flex;justify-content:flex-end;align-items:center;gap:10px;">
-                    <button type="button"
-                            class="btn-modal-cancel"
-                            data-bs-dismiss="modal">
-                        Close
-                    </button>
-                    <button type="button"
-                            class="btn-modal-save"
-                            id="view_edit_btn"
-                            onclick="openEditFromView()">
-                        <i class="bi bi-pencil"></i>
-                        Edit Room
-                    </button>
-                </div>
-
-            </div><!-- /right panel -->
-        </div>
-    </div>
-</div>
+        
 <!-- ── Add/Edit Room Modal ─────────────────────────────────────────── -->
 <div class="modal fade" id="roomModal" tabindex="-1" aria-labelledby="roomModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">

@@ -219,7 +219,7 @@ $admin_name = $admin->fetchColumn() ?: 'Administrator';
             --gold:        #c9a96e;
             --gold-light:  #e8d5b0;
             --gold-dim:    rgba(201,169,110,.13);
-            --dark:        #1a1a1a;
+            --dark:#0d0d0d;
             --dark-soft:   #2e2e2e;
             --muted:       #8a8070;
             --border:      rgba(201,169,110,.22);
@@ -564,8 +564,7 @@ $admin_name = $admin->fetchColumn() ?: 'Administrator';
 
         /* ─── Print Styles ───────────────────────────────────────── */
         @media print {
-            .sidebar, .filter-bar, .export-bar, .mobile-toggle,
-            .sidebar-overlay { display: none !important; }
+            .sidebar, .filter-bar, .export-bar { display: none !important; }
             .main-content { margin-left: 0 !important; padding: 20px !important; }
             .stat-card, .chart-card, .leaderboard-card,
             .table-card { box-shadow: none !important; border: 1px solid #ddd !important; }
@@ -584,25 +583,12 @@ $admin_name = $admin->fetchColumn() ?: 'Administrator';
         .print-header p { font-size: .82rem; color: var(--muted); }
 
         /* ─── Responsive ─────────────────────────────────────────── */
-        .sidebar-overlay {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,.55); z-index: 999;
-        }
-        .mobile-toggle {
-            display: none; position: fixed;
-            top: 18px; left: 18px; z-index: 1100;
-            background: var(--dark); border: 1px solid var(--border);
-            color: var(--gold); width: 42px; height: 42px;
-            border-radius: 10px; align-items: center;
-            justify-content: center; font-size: 1.2rem; cursor: pointer;
-        }
+        
         @media (max-width: 1200px) { .stat-grid { grid-template-columns: repeat(2,1fr); } }
         @media (max-width: 991px) {
-            .main-content { margin-left: 0; padding: 80px 20px 40px; }
-            .chart-grid, .two-col { grid-template-columns: 1fr; }
-            .mobile-toggle { display: flex; }
-            .sidebar-overlay.visible { display: block; }
-        }
+    .main-content { margin-left: 0; padding: 80px 20px 40px; }
+    .chart-grid, .two-col { grid-template-columns: 1fr; }
+}
         @media (max-width: 600px) {
             .stat-grid { grid-template-columns: 1fr; }
             .topbar { flex-direction: column; align-items: flex-start; gap: 10px; }
@@ -651,10 +637,6 @@ $admin_name = $admin->fetchColumn() ?: 'Administrator';
 </head>
 <body>
 
-<button class="mobile-toggle" id="mobileToggle" aria-label="Open menu">
-    <i class="bi bi-list"></i>
-</button>
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <?php require_once '../includes/sidebar.php'; ?>
 

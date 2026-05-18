@@ -82,7 +82,7 @@ try {
            --sidebar-w: 270px;
             --gold: #c9a96e;
             --gold-light: #e8d5b0;
-            --dark: #1a1a1a;
+            --dark:#0d0d0d;
             --dark-soft: #2e2e2e;
             --cream: #fdfbf7;
             --white: #ffffff;

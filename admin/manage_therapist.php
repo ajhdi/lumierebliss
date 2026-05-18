@@ -97,7 +97,16 @@ $all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
             .sidebar { transform: translateX(-100%); }
             .sidebar.active { transform: translateX(0); }
             .main-content { margin-left: 0; }
-        }
+        }/* Fix for the ghost scrollbar */
+.table-responsive {
+    overflow-x: hidden; /* Hide horizontal overflow on desktop */
+}
+
+@media (max-width: 991px) {
+    .table-responsive {
+        overflow-x: auto; /* Re-enable scrolling only on mobile/tablets */
+    }
+}
     </style>
 </head>
 <body>
@@ -113,7 +122,7 @@ $all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
         
         <!-- Added Treatments Option Here -->
         <a href="manage_treatments.php" class="nav-link"><i class="bi bi-droplet-half"></i> Treatments</a>
-        
+        <a href="manage_cosmetics.php" class="nav-link"><i class="bi bi-droplet-half"></i> Cosmetics</a>
         <a href="manage_therapist.php" class="nav-link"><i class="bi bi-person-badge"></i> Therapists</a>
         <a href="manage_room.php" class="nav-link"><i class="bi bi-door-open"></i> Rooms</a>
         <a href="manage_account.php" class="nav-link"><i class="bi bi-people"></i> Accounts</a>
@@ -134,7 +143,25 @@ $all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
 
     <div class="therapist-card p-4">
         <div class="table-responsive">
-            <table class="table table-hover align-middle">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="col-md-5">
+        <div class="input-group shadow-sm rounded-3">
+            <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-search text-muted"></i>
+            </span>
+            <input type="text" id="therapistSearch" class="form-control border-start-0 ps-0" placeholder="Search by name, specialty, or status...">
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <select id="genderFilter" class="form-select shadow-sm rounded-3">
+            <option value="All">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+        </select>
+    </div>
+</div>
+            <table id="therapistTable" class="table table-hover align-middle">
                 <thead>
     <tr class="text-muted small">
         <th>NAME</th>
@@ -169,12 +196,18 @@ $all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
         </td>
         <td class="text-center">
             <button class="btn btn-sm btn-light rounded-circle border shadow-sm" 
-        onclick='editTherapist(<?= json_encode($t) ?>, <?= json_encode($all_schedules[$t['therapist_id']] ?? []) ?>)'>
+        onclick='editTherapist(<?= json_encode(array_merge($t, ["schedules" => array_column($all_schedules[$t['therapist_id']] ?? [], "time_start")])) ?>)'>
     <i class="bi bi-pencil-square text-primary"></i>
 </button>
         </td>
     </tr>
     <?php endforeach; ?>
+    <tr id="noResultsRow" class="d-none">
+    <td colspan="5" class="text-center py-5 text-muted">
+        <i class="bi bi-person-exclamation d-block mb-2" style="font-size: 2rem;"></i>
+        No therapists found matching your search.
+    </td>
+</tr>
 </tbody>
             </table>
         </div>
@@ -184,12 +217,15 @@ $all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
  <div class="modal fade" id="therapistModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
+            
             <form action="manage_therapist.php" method="POST" enctype="multipart/form-data" id="therapistForm">
                 <div class="modal-header border-0 px-4 pt-4">
                     <h5 class="modal-title fw-bold" id="modalTitle">Therapist Profile</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body px-4">
+                   
+
                     <input type="hidden" name="therapist_id" id="therapist_id">
                     
                     <div class="text-center mb-4">
@@ -222,7 +258,7 @@ $all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Middle Name</label>
-                            <input type="text" name="middle_name" id="middle_name" class="form-control">
+                            <input type="text" name="middle_name" id="middle_name" class="form-control" required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Last Name</label>
@@ -243,20 +279,26 @@ $all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
 
 <div class="col-12">
     <label class="form-label">Work Experience</label>
-    <textarea name="work_experience" id="work_experience" class="form-control" rows="2"></textarea>
+    <textarea name="work_experience" id="work_experience" class="form-control" rows="2" required></textarea>
 </div>
                         <div class="col-12 mt-4">
                             <h6 class="fw-bold border-bottom pb-2 mb-3">Daily Time Schedule</h6>
                             <div class="row g-2">
                                 <?php for($i=0; $i<4; $i++): ?>
                                 <div class="col-md-3">
-                                    <input type="time" name="schedule_times[]" class="form-control schedule-input">
+                                    <input type="time" name="schedule_times[]" class="form-control schedule-input" required>
                                 </div>
                                 <?php endfor; ?>
                             </div>
                         </div>
                     </div> 
                 </div> 
+                <div id="validationError" class="d-none mb-3">
+        <div class="p-3 border-start border-danger border-4 bg-light d-flex align-items-center rounded-end shadow-sm">
+            <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>
+            <small id="errorText" class="text-dark fw-bold"></small>
+        </div>
+    </div>
                 <div class="modal-footer border-0 px-4 pb-4">
                     <button type="submit" name="save_therapist" class="btn btn-dark rounded-pill px-4">Save Changes</button>
                 </div>
@@ -269,38 +311,91 @@ $all_schedules = $sched_stmt->fetchAll(PDO::FETCH_GROUP);
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 
-function editTherapist(data, schedules) {
-    
-    document.getElementById('therapist_id').value = data.therapist_id;
-    document.getElementById('username').value = data.username || 'N/A';
-    document.getElementById('first_name').value = data.first_name;
-    document.getElementById('middle_name').value = data.middle_name || '';
-    document.getElementById('last_name').value = data.last_name;
-    document.getElementById('gender').value = data.gender;
-    document.getElementById('specialty').value = data.specialty;
-    document.getElementById('work_experience').value = data.work_experience;
-    document.getElementById('status').value = data.status;
+function editTherapist(therapist) {
+    const errorBox = document.getElementById('validationError');
+    if (errorBox) errorBox.classList.add('d-none');
 
-   
-    const preview = document.getElementById('profilePreview');
-    if (data.profile_picture && data.profile_picture !== 'default_therapist.png') {
-        preview.src = "../assets/img/therapists/" + data.profile_picture;
-    } else {
-        preview.src = "../assets/img/therapists/default_therapist.png";
-    }
-
+    document.getElementById('therapistForm').reset();
     
-    const slots = document.querySelectorAll('.schedule-input');
-    slots.forEach((input, index) => {
-        
-        input.value = (schedules && schedules[index]) ? schedules[index].time_start : "";
+    // Fill basic info
+    document.getElementById('therapist_id').value = therapist.therapist_id;
+    document.getElementById('first_name').value = therapist.first_name;
+    document.getElementById('middle_name').value = therapist.middle_name;
+    document.getElementById('last_name').value = therapist.last_name;
+    document.getElementById('gender').value = therapist.gender;
+    document.getElementById('specialty').value = therapist.specialty;
+    document.getElementById('work_experience').value = therapist.work_experience;
+    document.getElementById('status').value = therapist.status;
+    document.getElementById('modalTitle').innerText = 'Edit Therapist';
+
+    // Fix: Show the therapist's username (linked to their account)
+    document.getElementById('username').value = therapist.username || 'N/A';
+
+    // Fix: Update the Profile Preview image
+    const photo = therapist.profile_picture ? '../assets/img/therapists/' + therapist.profile_picture : '../assets/img/therapists/default_therapist.png';
+    document.getElementById('profilePreview').src = photo;
+
+    // Fill schedule slots
+    const times = therapist.schedules || [];
+    const inputs = document.querySelectorAll('.schedule-input');
+    inputs.forEach((input, index) => {
+        input.value = times[index] ? times[index].substring(0, 5) : '';
     });
 
-   
-    toggleScheduleDisability();
-
-    var therapistModal = new bootstrap.Modal(document.getElementById('therapistModal'));
+    toggleScheduleDisability(); // Ensure inputs are correctly enabled/disabled
+    const therapistModal = new bootstrap.Modal(document.getElementById('therapistModal'));
     therapistModal.show();
+}
+document.getElementById('therapistForm').addEventListener('submit', function(e) {
+    const errorBox = document.getElementById('validationError');
+    const errorText = document.getElementById('errorText');
+    
+    // Hide error box initially
+    if (errorBox) errorBox.classList.add('d-none');
+
+    // Basic required check for schedule (if active)
+    if (document.getElementById('status').value !== 'inactive') {
+        const inputs = document.querySelectorAll('.schedule-input');
+        let allFilled = true;
+        const times = [];
+
+        inputs.forEach(i => { 
+            if(!i.value) allFilled = false;
+            else times.push(i.value);
+        });
+
+        if (!allFilled) {
+            e.preventDefault();
+            showInlineError("All fields, including all 4 schedule slots, are required.");
+            return;
+        }
+
+        // Interval Check
+        for (let i = 0; i < times.length; i++) {
+            for (let j = i + 1; j < times.length; j++) {
+                const [h1, m1] = times[i].split(':').map(Number);
+                const [h2, m2] = times[j].split(':').map(Number);
+                const diff = Math.abs((h1 * 60 + m1) - (h2 * 60 + m2));
+
+                if (diff < 60) {
+                    e.preventDefault();
+                    showInlineError("Schedule Conflict: Slots must be at least 1 hour apart.");
+                    return;
+                }
+            }
+        }
+    }
+});
+
+function showInlineError(message) {
+    const errorBox = document.getElementById('validationError');
+    const errorText = document.getElementById('errorText');
+    if (errorBox && errorText) {
+        errorText.innerText = message;
+        errorBox.classList.remove('d-none');
+        // Scroll modal to top to see error
+        document.querySelector('.modal-body').scrollTo({ top: 0, behavior: 'smooth' });
+    }
 }
 
 function toggleScheduleDisability() {
@@ -319,27 +414,7 @@ function toggleScheduleDisability() {
 }
 
 
-document.getElementById('therapistForm').addEventListener('submit', function(e) {
-    if (document.getElementById('status').value === 'inactive') return;
 
-    const inputs = document.querySelectorAll('.schedule-input');
-    const times = [];
-    inputs.forEach(i => { if(i.value) times.push(i.value); });
-
-    for (let i = 0; i < times.length; i++) {
-        for (let j = i + 1; j < times.length; j++) {
-            const [h1, m1] = times[i].split(':').map(Number);
-            const [h2, m2] = times[j].split(':').map(Number);
-            const diff = Math.abs((h1 * 60 + m1) - (h2 * 60 + m2));
-
-            if (diff < 60) {
-                e.preventDefault();
-                alert("Error: There must be at least a 1-hour interval between schedule slots.");
-                return;
-            }
-        }
-    }
-});
 
 function previewImage(input) {
     if (input.files && input.files[0]) {
@@ -350,8 +425,45 @@ function previewImage(input) {
         reader.readAsDataURL(input.files[0]);
     }
 }
+
+// Combined Filter Function for Search and Gender
+function filterTherapists() {
+    const searchText = document.getElementById('therapistSearch').value.toLowerCase();
+    const genderValue = document.getElementById('genderFilter').value;
+    const rows = document.querySelectorAll('tbody tr:not(#noResultsRow)');
+    const noResultsRow = document.getElementById('noResultsRow');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const rowText = row.textContent.toLowerCase();
+        // Index 2 is the GENDER column
+        const rowGender = row.cells[2].textContent.trim(); 
+
+        const matchesSearch = rowText.includes(searchText);
+        const matchesGender = (genderValue === "All" || rowGender === genderValue);
+
+        if (matchesSearch && matchesGender) {
+            row.style.display = "";
+            visibleCount++;
+        } else {
+            row.style.display = "none";
+        }
+    });
+
+    // Handle "No Results" message
+    if (visibleCount === 0) {
+        noResultsRow.classList.remove('d-none');
+    } else {
+        noResultsRow.classList.add('d-none');
+    }
+}
+
+// Attach event listeners to both inputs
+document.getElementById('therapistSearch').addEventListener('keyup', filterTherapists);
+document.getElementById('genderFilter').addEventListener('change', filterTherapists);
+
+
 </script>
-
-
 </body>
 </html>
+

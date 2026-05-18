@@ -18,289 +18,780 @@ $pkg_sql = "SELECT t.*,
             ORDER BY t.name ASC";
 $package_bundles = $pdo->query($pkg_sql)->fetchAll();
 ?>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 
 <style>
-    :root {
-        --pure-white: #ffffff;
-        --studio-surface: #fdfbf7;
-        --brand-gold: #c9a96e;
-        --gold-light: #e8d5b0;
-        --the-dark: #1a1a1a;
-        --studio-mid: #2e2e2e;
-        --muted-text: #8a8070;
-        --lumiere-glow: linear-gradient(135deg, var(--the-dark), var(--studio-mid));
-    }
+/* ============================================================
+   LUMIÈRE — SIGNATURE RITUALS PAGE
+   High-Contrast Luxe · Refined Minimalism · Editorial Feel
+   ============================================================ */
 
-    body {
-        background-color: var(--studio-surface);
-        font-family: 'DM Sans', sans-serif;
-        font-size: 18px; 
-        color: var(--the-dark);
-        line-height: 1.6;
-    }
+:root {
+    --pure-white:    #ffffff;
+    --studio-surface:#fdfbf7;
+    --brand-gold:    #c9a96e;
+    --gold-light:    #e8d5b0;
+    --gold-dark:     #a07d42;
+    --the-dark:      #1a1a1a;
+    --studio-mid:    #2e2e2e;
+    --muted-text:    #8a8070;
+    --lumiere-glow:  linear-gradient(135deg, var(--the-dark), var(--studio-mid));
+    --section-gap:   120px;
+}
 
-    
-    h1, h2, h3, h4, .serif-brand {
-        font-family: 'Cormorant Garamond', serif;
-        font-weight: 600; 
-        color: var(--the-dark);
-        letter-spacing: -0.02em;
-    }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    .hero-tagline {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 4px;
-        color: var(--brand-gold);
-        font-size: 0.9rem;
-    }
+body {
+    background-color: var(--studio-surface);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 18px;
+    color: var(--the-dark);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
 
+h1, h2, h3, h4, h5, .serif {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    color: var(--the-dark);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
 
-    .treatment-card {
-        border: none;
-        background: var(--pure-white);
-        border-radius: 0; 
-        transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s ease;
-    }
+/* ── HERO ─────────────────────────────────────────────────── */
+.ritual-hero {
+    position: relative;
+    min-height: 88vh;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    overflow: hidden;
+    background: var(--the-dark);
+}
 
-    .treatment-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 20px 40px rgba(26, 26, 26, 0.08) !important;
-    }
+.ritual-hero__bg {
+    position: absolute;
+    inset: 0;
+    background: url('../assets/img/treatments/hero-bg.jpg') center/cover no-repeat;
+    opacity: 0.45;
+    transform: scale(1.04);
+    transition: transform 8s ease;
+}
+.ritual-hero:hover .ritual-hero__bg { transform: scale(1); }
 
-    .card-img-luxe {
-        height: 280px;
-        object-fit: cover;
-        filter: grayscale(20%);
-        transition: filter 0.4s ease;
-    }
+/* Vertical gold accent line */
+.ritual-hero::before {
+    content: '';
+    position: absolute;
+    left: 80px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--brand-gold), transparent);
+    opacity: 0.6;
+}
 
-    .treatment-card:hover .card-img-luxe {
-        filter: grayscale(0%);
-    }
+.ritual-hero__content {
+    position: relative;
+    z-index: 2;
+    padding: 0 80px 80px;
+    max-width: 680px;
+}
 
-  
-    .price-luxe {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        color: var(--the-dark);
-        font-size: 1.2rem;
-    }
+.ritual-hero__eyebrow {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--brand-gold);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.ritual-hero__eyebrow::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 1px;
+    background: var(--brand-gold);
+}
 
-    .duration-pill {
-        font-size: 0.75rem;
-        background-color: var(--studio-surface);
-        color: var(--muted-text);
-        padding: 4px 12px;
-        border: 1px solid var(--gold-light);
-    }
+.ritual-hero__title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    color: var(--pure-white);
+    line-height: 1.05;
+    margin-bottom: 28px;
+}
+.ritual-hero__title em {
+    font-style: italic;
+    color: var(--gold-light);
+}
 
-    .btn-luxe-dark {
-        background: var(--lumiere-glow);
-        color: var(--pure-white);
-        border: none;
-        border-radius: 0;
-        padding: 12px 30px;
-        font-weight: 500;
-        transition: 0.3s;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 1px;
-    }
+.ritual-hero__sub {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.55);
+    font-weight: 300;
+    max-width: 420px;
+    letter-spacing: 0.01em;
+}
 
-    .btn-luxe-dark:hover {
-        background: var(--brand-gold);
-        color: var(--pure-white);
-    }
+/* Scroll indicator */
+.scroll-cue {
+    position: absolute;
+    bottom: 40px;
+    right: 80px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+.scroll-cue__line {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, var(--brand-gold), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+    0%, 100% { opacity: 0.4; transform: scaleY(1); }
+    50%       { opacity: 1;   transform: scaleY(0.7); }
+}
 
-    .btn-luxe-outline {
-        border: 1px solid var(--the-dark);
-        color: var(--the-dark);
-        border-radius: 0;
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        font-weight: 500;
-        letter-spacing: 1px;
-    }
+/* ── SECTION ANATOMY ──────────────────────────────────────── */
+.section-wrap { padding: var(--section-gap) 0; }
+.section-wrap--dark {
+    background: var(--the-dark);
+    color: var(--pure-white);
+}
+.section-wrap--dark h2,
+.section-wrap--dark h3,
+.section-wrap--dark h4,
+.section-wrap--dark p { color: var(--pure-white); }
 
-    .bundle-wrapper {
-        background-color: var(--pure-white);
-        border: 1px solid var(--gold-light);
-        margin-bottom: 80px;
-    }
+.section-head {
+    margin-bottom: 64px;
+}
+.section-head__label {
+    font-size: 0.7rem;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--brand-gold);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+.section-head__label::after {
+    content: '';
+    flex: 1;
+    max-width: 60px;
+    height: 1px;
+    background: var(--brand-gold);
+}
+.section-head__title {
+    font-size: clamp(2.2rem, 4vw, 3.5rem);
+}
+.section-head__title span { font-weight: 300; font-style: italic; }
 
-    .bundle-label {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        color: var(--brand-gold);
-        font-size: 0.75rem;
-        letter-spacing: 3px;
-        text-transform: uppercase;
-    }
+/* ── INDIVIDUAL TREATMENT CARDS ───────────────────────────── */
+.treatments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2px;
+}
 
-    .treatment-card {
-        border: none;
-        border-radius: 20px;
-        transition: all 0.3s ease;
-        background: #fff;
-    }
-    .treatment-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(0,0,0,0.08) !important;
-    }
-    .category-pill {
-        font-size: 0.7rem;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        color: #C5A059;
-        font-weight: 700;
-    }
-    .price-tag {
-        font-size: 1.25rem;
-        font-weight: 800;
-        color: #1a1a1a;
-    }
-    .duration-label {
-        font-size: 0.85rem;
-        color: #6c757d;
-    }
-    .btn-book {
-        background: #1a1a1a;
-        color: #fff;
-        border-radius: 10px;
-        padding: 8px 20px;
-        font-size: 0.9rem;
-        transition: 0.3s;
-    }
-    .btn-book:hover {
-        background: #C5A059;
-        color: #fff;
-    }
+.tcard {
+    position: relative;
+    background: var(--pure-white);
+    overflow: hidden;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+}
+
+.tcard__image-wrap {
+    position: relative;
+    height: 320px;
+    overflow: hidden;
+}
+.tcard__image-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.7s cubic-bezier(0.165, 0.84, 0.44, 1);
+    filter: brightness(0.92);
+}
+.tcard:hover .tcard__image-wrap img {
+    transform: scale(1.06);
+    filter: brightness(1);
+}
+
+/* Gold corner accent */
+.tcard__image-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(to bottom, transparent 55%, rgba(26,26,26,0.55) 100%);
+    pointer-events: none;
+}
+
+.tcard__duration {
+    position: absolute;
+    top: 18px; right: 18px;
+    z-index: 2;
+    background: rgba(26,26,26,0.7);
+    backdrop-filter: blur(6px);
+    color: var(--gold-light);
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    font-weight: 500;
+}
+
+.tcard__body {
+    padding: 28px 28px 32px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--gold-light);
+    border-left: 1px solid var(--gold-light);
+    border-right: 1px solid var(--gold-light);
+}
+
+.tcard__name {
+    font-size: 1.35rem;
+    margin-bottom: 6px;
+}
+
+.tcard__divider {
+    width: 32px;
+    height: 1px;
+    background: var(--brand-gold);
+    margin: 14px 0;
+}
+
+.tcard__footer {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 20px;
+    border-top: 1px solid rgba(201,169,110,0.2);
+}
+
+.tcard__price {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--the-dark);
+}
+
+.btn-ghost {
+    background: transparent;
+    border: 1px solid var(--the-dark);
+    color: var(--the-dark);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 9px 20px;
+    cursor: pointer;
+    transition: background 0.25s, color 0.25s, border-color 0.25s;
+}
+.btn-ghost:hover {
+    background: var(--the-dark);
+    color: var(--pure-white);
+}
+
+/* Stagger reveal animation */
+.tcard {
+    opacity: 0;
+    transform: translateY(28px);
+    animation: fadeUp 0.6s ease forwards;
+}
+@keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+}
+.tcard:nth-child(1)  { animation-delay: 0.05s; }
+.tcard:nth-child(2)  { animation-delay: 0.12s; }
+.tcard:nth-child(3)  { animation-delay: 0.19s; }
+.tcard:nth-child(4)  { animation-delay: 0.26s; }
+.tcard:nth-child(5)  { animation-delay: 0.33s; }
+.tcard:nth-child(6)  { animation-delay: 0.40s; }
+.tcard:nth-child(7)  { animation-delay: 0.47s; }
+.tcard:nth-child(8)  { animation-delay: 0.54s; }
+
+/* ── INTERLUDE BANNER ──────────────────────────────────────── */
+.interlude {
+    background: var(--the-dark);
+    padding: 80px 0;
+    position: relative;
+    overflow: hidden;
+}
+.interlude::before {
+    content: 'LUMIÈRE';
+    position: absolute;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(6rem, 18vw, 18rem);
+    font-weight: 600;
+    color: rgba(255,255,255,0.025);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    pointer-events: none;
+    letter-spacing: 0.3em;
+}
+.interlude__inner {
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+.interlude__quote {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(1.6rem, 3vw, 2.6rem);
+    color: var(--gold-light);
+    max-width: 700px;
+    margin: 0 auto 20px;
+    line-height: 1.4;
+}
+.interlude__attr {
+    font-size: 0.7rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+}
+
+/* ── PACKAGE BUNDLES ───────────────────────────────────────── */
+.bundle-list { display: flex; flex-direction: column; gap: 2px; }
+
+.bundle-item {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 560px;
+    background: var(--pure-white);
+    overflow: hidden;
+    transition: box-shadow 0.4s;
+}
+.bundle-item:hover { box-shadow: 0 24px 80px rgba(0,0,0,0.12); }
+.bundle-item--reverse { direction: rtl; }
+.bundle-item--reverse > * { direction: ltr; }
+
+.bundle-item__images {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+}
+.bundle-item__images img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+.bundle-item:hover .bundle-item__images img { transform: scale(1.04); }
+
+/* Vertical divider between images */
+.bundle-item__images::after {
+    content: '';
+    position: absolute;
+    left: 50%; top: 15%; bottom: 15%;
+    width: 1px;
+    background: rgba(255,255,255,0.4);
+    pointer-events: none;
+}
+
+.bundle-item__content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 64px 72px;
+    border: 1px solid var(--gold-light);
+}
+
+.bundle-item__tag {
+    font-size: 0.68rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--brand-gold);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.bundle-item__tag::before {
+    content: '';
+    width: 28px; height: 1px;
+    background: var(--brand-gold);
+}
+
+.bundle-item__name {
+    font-size: clamp(1.8rem, 3vw, 2.8rem);
+    margin-bottom: 10px;
+}
+
+.bundle-item__sub {
+    font-size: 0.85rem;
+    letter-spacing: 1.5px;
+    color: var(--brand-gold);
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 24px;
+}
+
+.bundle-item__desc {
+    font-size: 0.95rem;
+    color: var(--muted-text);
+    line-height: 1.75;
+    margin-bottom: 40px;
+    max-width: 380px;
+}
+
+.bundle-item__meta {
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+    margin-bottom: 36px;
+    padding-bottom: 36px;
+    border-bottom: 1px solid var(--gold-light);
+}
+.bundle-item__price {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: var(--the-dark);
+}
+.bundle-item__duration {
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted-text);
+    font-weight: 500;
+}
+
+.btn-luxe {
+    display: inline-block;
+    background: var(--the-dark);
+    color: var(--pure-white);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 16px 40px;
+    transition: background 0.3s, color 0.3s, letter-spacing 0.3s;
+    align-self: flex-start;
+}
+.btn-luxe:hover {
+    background: var(--brand-gold);
+    color: var(--pure-white);
+    letter-spacing: 4px;
+}
+
+/* ── MODAL REDESIGN ───────────────────────────────────────── */
+.modal-backdrop { backdrop-filter: blur(6px); }
+
+#detailsModal .modal-content {
+    background: var(--studio-surface);
+    border: none;
+    border-radius: 0;
+    box-shadow: 0 40px 120px rgba(0,0,0,0.25);
+    overflow: hidden;
+}
+
+.modal-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 560px;
+}
+
+.modal-split__image {
+    position: relative;
+    overflow: hidden;
+}
+.modal-split__image img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.modal-split__image::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, transparent, rgba(253,251,247,0.12));
+    pointer-events: none;
+}
+
+.modal-split__body {
+    padding: 64px 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+}
+
+.modal-close {
+    position: absolute;
+    top: 28px; right: 28px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+    font-size: 1.4rem;
+    color: var(--the-dark);
+}
+.modal-close:hover { opacity: 1; }
+
+.modal-eyebrow {
+    font-size: 0.68rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--brand-gold);
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+#detailName {
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    margin-bottom: 6px;
+}
+
+.modal-duration {
+    font-size: 0.78rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted-text);
+    font-weight: 500;
+    margin-bottom: 28px;
+    display: flex; align-items: center; gap: 8px;
+}
+.modal-duration::before {
+    content: '';
+    display: block;
+    width: 20px; height: 1px;
+    background: var(--muted-text);
+}
+
+#detailDescription {
+    font-size: 0.95rem;
+    color: var(--muted-text);
+    line-height: 1.8;
+    flex: 1;
+    margin-bottom: 36px;
+}
+
+.modal-footer-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-top: 28px;
+    border-top: 1px solid var(--gold-light);
+}
+
+.modal-price-label {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted-text);
+    margin-bottom: 6px;
+}
+#detailPrice {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* ── UTILITIES ───────────────────────────────────────────── */
+.container-xl { max-width: 1400px; margin: 0 auto; padding: 0 60px; }
+
+@media (max-width: 991px) {
+    .container-xl { padding: 0 28px; }
+    .ritual-hero::before { left: 28px; }
+    .ritual-hero__content { padding: 0 28px 60px; }
+    .scroll-cue { right: 28px; }
+    .bundle-item { grid-template-columns: 1fr; }
+    .bundle-item--reverse { direction: ltr; }
+    .bundle-item__images { min-height: 280px; }
+    .bundle-item__content { padding: 40px 32px; }
+    .modal-split { grid-template-columns: 1fr; }
+    .modal-split__image { height: 260px; }
+    .modal-split__body { padding: 36px 28px; }
+    :root { --section-gap: 72px; }
+}
+
+@media (max-width: 640px) {
+    .treatments-grid { grid-template-columns: 1fr 1fr; gap: 2px; }
+    .tcard__image-wrap { height: 220px; }
+}
+@media (max-width: 420px) {
+    .treatments-grid { grid-template-columns: 1fr; }
+}
 </style>
 
-<div class="container py-5">
-    <div class="text-center mb-5 pt-4">
-        <span class="hero-tagline">Lumiére Curations</span>
-        <h1 class="display-4 mt-2">Signature Rituals</h1>
-        <div class="mx-auto" style="width: 60px; height: 2px; background: var(--brand-gold); margin-top: 20px;"></div>
+<!-- ══════════════════════════════════════════════════════════
+     HERO
+     ══════════════════════════════════════════════════════════ -->
+<section class="ritual-hero">
+    <div class="ritual-hero__bg"></div>
+
+    <div class="ritual-hero__content">
+        <p class="ritual-hero__eyebrow">Lumiére Curations</p>
+        <h1 class="ritual-hero__title">Signature<br><em>Rituals</em></h1>
+        <p class="ritual-hero__sub">Moments of devoted care, thoughtfully composed for mind, skin, and spirit.</p>
     </div>
 
-    <div class="mb-5">
-        <h2 class="mb-5">Individual <span style="font-weight: 300;">Treatments</span></h2>
-        <div class="row g-4">
+    <div class="scroll-cue">
+        <div class="scroll-cue__line"></div>
+        <span>Scroll</span>
+    </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     INDIVIDUAL TREATMENTS
+     ══════════════════════════════════════════════════════════ -->
+<section class="section-wrap">
+    <div class="container-xl">
+        <div class="section-head">
+            <p class="section-head__label">Curated for You</p>
+            <h2 class="section-head__title">Individual <span>Treatments</span></h2>
+        </div>
+
+        <div class="treatments-grid">
             <?php if (!empty($individual_treatments)): ?>
                 <?php foreach ($individual_treatments as $t): ?>
-                    <div class="col-md-4 col-lg-3"> 
-                        <div class="card treatment-card h-100 shadow-sm">
-                            <img src="../assets/img/treatments/<?= !empty($t['image']) ? $t['image'] : 'default.jpg' ?>" 
-                                 class="card-img-top card-img-luxe">
-                            
-                            <div class="card-body d-flex flex-column p-4"> 
-                                <h4 class="h5 mb-2"><?= htmlspecialchars($t['name']) ?></h4>
-                                <div class="mb-4">
-                                    <span class="duration-pill">
-                                        <i class="bi bi-clock me-1"></i> <?= htmlspecialchars($t['duration_minutes']) ?> MINS
-                                    </span>
-                                </div>
-
-                                <div class="mt-auto">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="price-luxe">₱<?= number_format($t['price'], 2) ?></span>
-                                        <button type="button" class="btn btn-luxe-outline btn-sm px-3" 
-                                                onclick='showDetails(<?= json_encode($t) ?>)'>
-                                            Discover
-                                        </button>
-                                    </div>
-                                </div>
+                    <article class="tcard">
+                        <div class="tcard__image-wrap">
+                            <img src="../assets/img/treatments/<?= !empty($t['image']) ? htmlspecialchars($t['image']) : 'default.jpg' ?>"
+                                 alt="<?= htmlspecialchars($t['name']) ?>">
+                            <span class="tcard__duration">
+                                <?= htmlspecialchars($t['duration_minutes']) ?> min
+                            </span>
+                        </div>
+                        <div class="tcard__body">
+                            <h3 class="tcard__name"><?= htmlspecialchars($t['name']) ?></h3>
+                            <div class="tcard__divider"></div>
+                            <div class="tcard__footer">
+                                <span class="tcard__price">₱<?= number_format($t['price'], 2) ?></span>
+                                <button class="btn-ghost"
+                                        onclick='showDetails(<?= json_encode($t) ?>)'>
+                                    Discover
+                                </button>
                             </div>
                         </div>
-                    </div>
+                    </article>
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
     </div>
-</div>
+</section>
 
-<div class="py-5" style="background-color: var(--pure-white); border-top: 1px solid var(--gold-light);">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="display-5">Exclusive <span style="font-weight: 300;">Collections</span></h2>
-        </div>
 
-        <?php if (!empty($package_bundles)): ?>
-            <?php $counter = 0; foreach ($package_bundles as $t): 
-                $is_reversed = ($counter % 2 !== 0) ? 'flex-row-reverse' : '';
-                $text_align = ($counter % 2 !== 0) ? 'text-md-end' : 'text-md-start';
-            ?>
-                <div class="bundle-wrapper shadow-sm overflow-hidden">
-                    <div class="row g-0 <?= $is_reversed ?>">
-                        <div class="col-md-6 d-flex" style="min-height: 450px;">
-                            <div class="w-50 h-100 border-end border-white" style="background: url('../assets/img/treatments/<?= $t['img1'] ?: 'default.jpg' ?>') center/cover no-repeat;"></div>
-                            <div class="w-50 h-100" style="background: url('../assets/img/treatments/<?= $t['img2'] ?: 'default.jpg' ?>') center/cover no-repeat;"></div>
-                        </div>
-
-                        <div class="col-md-6 p-5 d-flex flex-column justify-content-center <?= $text_align ?>">
-                            <span class="bundle-label mb-2">Signature Package</span>
-                            <h2 class="display-6 mb-3"><?= htmlspecialchars($t['name']) ?></h2>
-                            
-                            <h6 class="mb-4" style="color: var(--brand-gold); letter-spacing: 1px;">
-                                <?= htmlspecialchars($t['sub_names']) ?>
-                            </h6>
-                            
-                            <p class="text-muted mb-4" style="font-size: 1rem;">
-                                <?= htmlspecialchars($t['description']) ?>
-                            </p>
-
-                            <div class="d-flex flex-wrap gap-3 mb-5 <?= ($counter % 2 !== 0) ? 'justify-content-md-end' : '' ?>">
-                                <span class="duration-pill"><i class="bi bi-clock me-1"></i> <?= htmlspecialchars($t['duration_minutes']) ?> MINS</span>
-                                <span class="price-luxe" style="color: var(--brand-gold);">₱<?= number_format($t['price'], 2) ?></span>
-                            </div>
-
-                            <div class="<?= ($counter % 2 !== 0) ? 'text-md-end' : '' ?>">
-                                <a href="appointment.php?tid=<?= $t['treatment_id'] ?>" class="btn btn-luxe-dark px-5">
-                                    Reserve Bundle
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            <?php $counter++; endforeach; ?>
-        <?php endif; ?>
+<!-- ══════════════════════════════════════════════════════════
+     INTERLUDE QUOTE
+     ══════════════════════════════════════════════════════════ -->
+<div class="interlude">
+    <div class="interlude__inner">
+        <p class="interlude__quote">"True luxury is the art of becoming, not merely having."</p>
+        <p class="interlude__attr">— The Lumiére Philosophy</p>
     </div>
 </div>
 
-<div class="modal fade" id="detailsModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg" style="background-color: var(--studio-surface);">
-            <div class="modal-header border-0 pb-0">
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-5">
-                <div class="row">
-                    <div class="col-md-5">
-                        <img id="detailImage" src="" class="w-100 shadow-sm mb-4 mb-md-0" style="height: 350px; object-fit: cover;">
+
+<!-- ══════════════════════════════════════════════════════════
+     EXCLUSIVE COLLECTIONS (Packages)
+     ══════════════════════════════════════════════════════════ -->
+<section class="section-wrap">
+    <div class="container-xl">
+        <div class="section-head">
+            <p class="section-head__label">Exclusive Collections</p>
+            <h2 class="section-head__title">Signature <span>Packages</span></h2>
+        </div>
+    </div>
+
+    <?php if (!empty($package_bundles)): ?>
+        <div class="bundle-list">
+            <?php $counter = 0; foreach ($package_bundles as $t):
+                $reverse_class = ($counter % 2 !== 0) ? 'bundle-item--reverse' : '';
+            ?>
+                <div class="bundle-item <?= $reverse_class ?>">
+                    <!-- Dual Images -->
+                    <div class="bundle-item__images">
+                        <img src="../assets/img/treatments/<?= $t['img1'] ?: 'default.jpg' ?>"
+                             alt="<?= htmlspecialchars($t['name']) ?> – view 1">
+                        <img src="../assets/img/treatments/<?= $t['img2'] ?: 'default.jpg' ?>"
+                             alt="<?= htmlspecialchars($t['name']) ?> – view 2">
                     </div>
-                    <div class="col-md-7">
-                        <span class="hero-tagline" style="font-size: 0.7rem;">Treatment Insight</span>
-                        <h2 id="detailName" class="display-6 mt-1 mb-3"></h2>
-                        
-                        <div class="mb-4">
-                             <span id="detailDuration" class="duration-pill"></span>
+
+                    <!-- Content -->
+                    <div class="bundle-item__content">
+                        <p class="bundle-item__tag">Signature Package</p>
+                        <h2 class="bundle-item__name"><?= htmlspecialchars($t['name']) ?></h2>
+                        <p class="bundle-item__sub"><?= htmlspecialchars($t['sub_names']) ?></p>
+                        <p class="bundle-item__desc"><?= htmlspecialchars($t['description']) ?></p>
+
+                        <div class="bundle-item__meta">
+                            <span class="bundle-item__price">₱<?= number_format($t['price'], 2) ?></span>
+                            <span class="bundle-item__duration">
+                                <i class="bi bi-clock me-1"></i><?= htmlspecialchars($t['duration_minutes']) ?> min
+                            </span>
                         </div>
-                        
-                        <p id="detailDescription" class="text-muted mb-5" style="font-size: 1.1rem;"></p>
-                        
-                        <div class="d-flex justify-content-between align-items-end border-top pt-4">
-                            <div>
-                                <span class="hero-tagline" style="font-size: 0.65rem;">Investment</span>
-                                <h3 id="detailPrice" class="price-luxe mb-0"></h3>
-                            </div>
-                            <a href="" id="detailBookBtn" class="btn btn-luxe-dark">
-                                Secure Session
-                            </a>
+
+                        <a href="appointment.php?tid=<?= $t['treatment_id'] ?>" class="btn-luxe">
+                            Reserve Bundle
+                        </a>
+                    </div>
+                </div>
+            <?php $counter++; endforeach; ?>
+        </div>
+    <?php endif; ?>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     TREATMENT DETAIL MODAL
+     ══════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailName" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-fullscreen-md-down">
+        <div class="modal-content">
+            <div class="modal-split">
+                <!-- Image Panel -->
+                <div class="modal-split__image">
+                    <img id="detailImage" src="" alt="">
+                </div>
+
+                <!-- Info Panel -->
+                <div class="modal-split__body">
+                    <button class="modal-close" data-bs-dismiss="modal" aria-label="Close">✕</button>
+
+                    <p class="modal-eyebrow">Treatment Insight</p>
+                    <h2 id="detailName"></h2>
+                    <p class="modal-duration" id="detailDuration"></p>
+                    <p id="detailDescription"></p>
+
+                    <div class="modal-footer-row">
+                        <div>
+                            <p class="modal-price-label">Investment</p>
+                            <p id="detailPrice"></p>
                         </div>
+                        <a id="detailBookBtn" href="" class="btn-luxe">Book Session</a>
                     </div>
                 </div>
             </div>
@@ -312,20 +803,17 @@ $package_bundles = $pdo->query($pkg_sql)->fetchAll();
 
 <script>
 function showDetails(data) {
-   
-    document.getElementById('detailName').innerText = data.name;
-    document.getElementById('detailDescription').innerText = data.description; // Description shows here
-    document.getElementById('detailDuration').innerText = data.duration_minutes + " mins";
-    document.getElementById('detailPrice').innerText = "₱" + parseFloat(data.price).toLocaleString(undefined, {minimumFractionDigits: 2});
-    
-   
+    document.getElementById('detailName').innerText        = data.name;
+    document.getElementById('detailDescription').innerText = data.description;
+    document.getElementById('detailDuration').innerText    = data.duration_minutes + " minutes";
+    document.getElementById('detailPrice').innerText       = "₱" + parseFloat(data.price).toLocaleString(undefined, { minimumFractionDigits: 2 });
+
     const imagePath = "../assets/img/treatments/" + (data.image ? data.image : 'default.jpg');
-    document.getElementById('detailImage').src = imagePath;
-    
-    
+    document.getElementById('detailImage').src   = imagePath;
+    document.getElementById('detailImage').alt   = data.name;
+
     document.getElementById('detailBookBtn').href = "appointment.php?tid=" + data.treatment_id;
-    
-    
+
     var myModal = new bootstrap.Modal(document.getElementById('detailsModal'));
     myModal.show();
 }

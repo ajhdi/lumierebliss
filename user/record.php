@@ -10,7 +10,6 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // Fetch appointments with joined data for Treatment and Therapist names
-// Note: Adjust column names if your DB uses first_name/last_name for therapists
 $sql = "SELECT a.*, t.name AS treatment_name, th.first_name AS therapist_fname, th.last_name AS therapist_lname 
         FROM appointments a
         JOIN treatments t ON a.treatment_id = t.treatment_id
@@ -23,120 +22,283 @@ $stmt->execute([$user_id]);
 $records = $stmt->fetchAll();
 ?>
 
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
 <style>
-    :root { --gold: #C5A059; --dark: #1a1a1a; }
-    body { background-color: #fdfbf7; }
-
-    .record-card {
-        border: none;
-        border-radius: 24px;
-        background: #ffffff;
-        border: 1px solid rgba(0,0,0,0.03);
+    :root {
+        --pure-white: #ffffff;
+        --studio-surface: #fdfbf7;
+        --brand-gold: #c9a96e;
+        --gold-light: #e8d5b0;
+        --the-dark: #1a1a1a;
+        --studio-mid: #2e2e2e;
+        --muted-text: #8a8070;
+        --lumiere-glow: linear-gradient(135deg, var(--the-dark), var(--studio-mid));
     }
 
-    .table thead th {
-        background-color: #f8f9fa;
+    .luxe-records-context {
+        background-color: var(--studio-surface);
+        font-family: 'DM Sans', sans-serif;
+        font-size: 18px; 
+        color: var(--the-dark);
+        line-height: 1.6;
+        min-height: 80vh;
+    }
+
+    /* Typography Hierarchy & Weight Pairings */
+    .luxe-records-context h1, 
+    .luxe-records-context h2, 
+    .luxe-records-context h3, 
+    .luxe-records-context h4,
+    .luxe-records-context .serif-heading {
+        font-family: 'Cormorant Garamond', serif;
+        color: var(--the-dark);
+        letter-spacing: -0.01em;
+    }
+
+    .hero-tagline {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 500;
         text-transform: uppercase;
-        font-size: 0.7rem;
-        letter-spacing: 1px;
-        font-weight: 700;
-        color: #888;
-        border: none;
-        padding: 15px 20px;
+        letter-spacing: 4px;
+        color: var(--brand-gold);
+        font-size: 0.85rem;
+        display: inline-block;
     }
 
-    .table tbody td {
-        padding: 20px;
+    /* Header Padding Adjustment below Navbar */
+    .lux-hero-container {
+        padding-top: 6.5rem !important;
+        margin-bottom: 5rem;
+    }
+
+    /* Structured Geometry Content Panel */
+    .record-card-luxe {
+        border: 1px solid rgba(232, 213, 176, 0.4);
+        border-radius: 0px !important;
+        background: var(--pure-white);
+        transition: box-shadow 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+
+    .record-card-luxe:hover {
+        box-shadow: 0 30px 60px rgba(26, 26, 26, 0.04) !important;
+    }
+
+    /* Luxury High-Contrast Table Layout */
+    .table-luxe {
+        margin-bottom: 0;
+        width: 100%;
+        background-color: transparent;
+    }
+
+    .table-luxe thead th {
+        background-color: var(--the-dark);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 2px;
+        font-weight: 500;
+        color: var(--gold-light);
+        border: none;
+        padding: 20px 24px;
+    }
+
+    .table-luxe tbody tr {
+        transition: background-color 0.3s ease;
+    }
+
+    .table-luxe tbody tr:hover {
+        background-color: rgba(253, 251, 247, 0.7);
+    }
+
+    .table-luxe tbody td {
+        padding: 26px 24px;
         vertical-align: middle;
-        border-bottom: 1px solid #f1f1f1;
-        font-size: 0.9rem;
+        border-bottom: 1px solid rgba(232, 213, 176, 0.25);
+        font-size: 0.95rem;
+        color: var(--the-dark);
     }
 
-    .status-badge {
+    /* Text Data Element Customizations */
+    .data-primary {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        color: var(--the-dark);
+        font-size: 1.05rem;
+    }
+
+    .data-secondary {
+        font-family: 'DM Sans', sans-serif;
+        color: var(--muted-text);
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+    }
+
+    .treatment-title-luxe {
+        font-family: 'Cormorant Garamond', serif;
+        font-weight: 600;
+        font-size: 1.35rem;
+        color: var(--the-dark);
+    }
+
+    /* Premium Status Indicators using Lumiére Glow rules */
+    .status-badge-luxe {
+        font-family: 'DM Sans', sans-serif;
         font-size: 0.7rem;
         font-weight: 700;
-        padding: 6px 12px;
-        border-radius: 50px;
+        padding: 6px 14px;
+        border-radius: 0px !important;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        display: inline-block;
+        border: 1px solid transparent;
+    }
+
+    .status-pending { 
+        background: #fffcf6; 
+        color: #c2780e; 
+        border-color: #fce8cc;
+    }
+    
+    .status-confirmed { 
+        background: #f4fcf7; 
+        color: #1c7a43; 
+        border-color: #d3f4e0;
+    }
+    
+    .status-completed { 
+        background: var(--studio-surface); 
+        color: var(--muted-text); 
+        border-color: var(--gold-light);
+    }
+    
+    .status-cancelled { 
+        background: #fff8f8; 
+        color: #b82323; 
+        border-color: #fcd4d4;
+    }
+
+    .membership-pill {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 1px;
+        background-color: transparent;
+        color: var(--brand-gold);
+        padding: 4px 10px;
+        border: 1px solid var(--brand-gold);
         text-transform: uppercase;
     }
 
-    .status-pending { background: #fff4e6; color: #d9480f; }
-    .status-confirmed { background: #ebfbee; color: #2b8a3e; }
-    .status-completed { background: #f1f3f5; color: #495057; }
-    .status-cancelled { background: #fff5f5; color: #c92a2a; }
+    /* Minimalist Empty State Component Style */
+    .empty-state-luxe {
+        padding: 100px 24px;
+        text-center: center;
+    }
 
-    .empty-state {
-        padding: 80px 0;
-        text-align: center;
+    .btn-luxe-dark {
+        background: var(--lumiere-glow);
+        color: var(--pure-white) !important;
+        border: none;
+        border-radius: 0px !important;
+        padding: 14px 36px;
+        font-weight: 500;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 2px;
+        display: inline-block;
+        text-decoration: none;
+    }
+
+    .btn-luxe-dark:hover {
+        background: var(--brand-gold);
+        color: var(--pure-white) !important;
+        box-shadow: 0 10px 20px rgba(201, 169, 110, 0.15);
     }
 </style>
 
-<div class="container py-5">
-    <div class="row mb-4 align-items-end">
-        <div class="col-md-6">
-            <h6 class="text-uppercase fw-bold mb-2" style="color: var(--gold); letter-spacing: 2px;">Activity</h6>
-            <h1 class="fw-bold text-dark m-0">My Records</h1>
+<div class="luxe-records-context">
+    <div class="container pb-5">
+        
+        <div class="text-center lux-hero-container">
+            <span class="hero-tagline">Personal Sanctuary Activity</span>
+            <h1 class="display-4 mt-2 mb-3" style="font-weight: 300;">My Wellness <span style="font-weight: 600;">Records</span></h1>
+            <p class="text-muted mx-auto" style="max-width: 540px; font-size: 0.95rem; letter-spacing: 0.5px;">
+                Tracking your structural aesthetic and ritual arrangements timeline since <?= date('F Y', strtotime($_SESSION['created_at'] ?? 'now')) ?>
+            </p>
+            <div class="mx-auto" style="width: 40px; height: 1px; background: var(--brand-gold); margin-top: 24px;"></div>
         </div>
-        <div class="col-md-6 text-md-end">
-            <p class="text-muted small mb-0">Tracking your wellness journey since <?= date('M Y', strtotime($_SESSION['created_at'] ?? 'now')) ?></p>
-        </div>
-    </div>
 
-    <div class="card record-card shadow-sm overflow-hidden">
-        <div class="table-responsive">
-            <table class="table mb-0">
-                <thead>
-                    <tr>
-                        <th>Date & Time</th>
-                        <th>Treatment</th>
-                        <th>Therapist</th>
-                        <th>Payment</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if ($records): ?>
-                        <?php foreach ($records as $r): ?>
+        <div class="card record-card shadow-sm overflow-hidden record-card-luxe">
+            <div class="table-responsive">
+                <table class="table table-luxe align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width: 22%;">Scheduled Date & Time</th>
+                            <th scope="col" style="width: 32%;">Arranged Treatment</th>
+                            <th scope="col" style="width: 23%;">Assigned Practitioner</th>
+                            <th scope="col" style="width: 13%;">Statement Amount</th>
+                            <th scope="col" style="width: 10%;">Ritual Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($records)): ?>
+                            <?php foreach ($records as $r): ?>
+                                <tr>
+                                    <td>
+                                        <div class="data-primary"><?= date('M d, Y', strtotime($r['appointment_date'])) ?></div>
+                                        <div class="data-secondary"><i class="bi bi-clock me-1 small"></i> <?= date('h:i A', strtotime($r['appointment_time'])) ?></div>
+                                    </td>
+                                    
+                                    <td>
+                                        <div class="treatment-title-luxe"><?= htmlspecialchars($r['treatment_name']) ?></div>
+                                    </td>
+                                    
+                                    <td>
+                                        <div class="data-primary" style="font-weight: 500; font-size: 1rem;">
+                                            <?= htmlspecialchars($r['therapist_fname'] . ' ' . $r['therapist_lname']) ?>
+                                        </div>
+                                        <div class="data-secondary" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Therapist</div>
+                                    </td>
+                                    
+                                    <td>
+                                        <?php if(isset($r['payment_type']) && $r['payment_type'] === 'membership'): ?>
+                                            <span class="membership-pill">Member Credit</span>
+                                        <?php else: ?>
+                                            <span class="data-primary" style="color: var(--the-dark); font-weight: 700;">₱<?= number_format($r['amount'], 2) ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    
+                                    <td>
+                                        <?php 
+                                            $statusValue = isset($r['status']) ? $r['status'] : 'Pending';
+                                            $statusClass = 'status-' . strtolower($statusValue);
+                                            echo "<span class='status-badge-luxe $statusClass'>" . htmlspecialchars($statusValue) . "</span>";
+                                        ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
                             <tr>
-                                <td>
-                                    <div class="fw-bold text-dark"><?= date('M d, Y', strtotime($r['appointment_date'])) ?></div>
-                                    <div class="small text-muted"><?= date('h:i A', strtotime($r['appointment_time'])) ?></div>
-                                </td>
-                                <td>
-                                    <div class="fw-medium"><?= htmlspecialchars($r['treatment_name']) ?></div>
-                                </td>
-                                <td>
-                                    <div class="small text-muted">
-                                        <?= htmlspecialchars($r['therapist_fname'] . ' ' . $r['therapist_lname']) ?>
+                                <td colspan="5" class="empty-state-luxe text-center">
+                                    <div class="py-4">
+                                        <div class="mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 70px; height: 70px; border: 1px solid var(--gold-light); background: transparent;">
+                                            <i class="bi bi-calendar3 text-muted" style="font-size: 1.5rem;"></i>
+                                        </div>
+                                        <h3 class="h4 mb-2" style="font-weight: 600;">No Historic Logs Found</h3>
+                                        <p class="text-muted mx-auto mb-4" style="max-width: 400px; font-size: 0.95rem;">You have not reserved any session parameters with Lumiére Curations at this moment.</p>
+                                        <a href="treatment.php" class="btn btn-luxe-dark">
+                                            Explore Our Curations
+                                        </a>
                                     </div>
                                 </td>
-                                <td>
-                                    <?php if($r['payment_type'] === 'membership'): ?>
-                                        <span class="badge bg-light text-dark border fw-normal">Member Credit</span>
-                                    <?php else: ?>
-                                        <span class="text-dark fw-medium">₱<?= number_format($r['amount'], 2) ?></span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php 
-                                        $statusClass = 'status-' . strtolower($r['status']);
-                                        echo "<span class='status-badge $statusClass'>" . htmlspecialchars($r['status']) . "</span>";
-                                    ?>
-                                </td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="5" class="empty-state">
-                                <i class="bi bi-calendar-x display-4 text-light d-block mb-3"></i>
-                                <p class="text-muted mb-4">You haven't booked any appointments yet.</p>
-                                <a href="treatment.php" class="btn btn-dark rounded-pill px-4">Find a Treatment</a>
-                            </td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
+
     </div>
 </div>
 

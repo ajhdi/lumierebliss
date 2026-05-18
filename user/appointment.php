@@ -15,7 +15,7 @@ $u_stmt->execute([$user_id]);
 $user = $u_stmt->fetch();
 
 // Treatments (available only)
-$treatments = $pdo->query("SELECT * FROM treatments WHERE status = 'available' ORDER BY name")->fetchAll();
+$treatments = $pdo->query("SELECT * FROM treatments WHERE status = 'available' and type = 'individual' ORDER BY name")->fetchAll();
 
 // Packages (active only)
 $packages = $pdo->query("SELECT * FROM packages WHERE status = 'available' ORDER BY name")->fetchAll();
@@ -27,11 +27,22 @@ $therapists = $pdo->query("SELECT * FROM therapists WHERE status = 'active' ORDE
 // Check membership/account type
 if ($user['account_type'] === 'non_member') {
 
-    // Only show standard rooms
+    /*
+    NON-MEMBER:
+    - Standard Room = free
+    - Couple/Private/Premium = with additional fee
+    */
+
     $room_stmt = $pdo->prepare("
-        SELECT * 
-        FROM rooms 
-        WHERE room_type = 'Standard Room'
+        SELECT 
+            *,
+            CASE
+                WHEN room_type = 'Standard Room'
+                    THEN 0
+                ELSE additional_fee
+            END AS final_fee
+        FROM rooms
+        WHERE status = 'available'
         ORDER BY room_name
     ");
 
@@ -39,10 +50,28 @@ if ($user['account_type'] === 'non_member') {
 
 } else {
 
-    // Show all rooms for members
+    /*
+    MEMBER:
+    - Standard Room = free
+    - Couple Room = free
+    - Private Room = free
+    - Premium Room = with additional fee
+    */
+
     $room_stmt = $pdo->prepare("
-        SELECT * 
-        FROM rooms 
+        SELECT 
+            *,
+            CASE
+                WHEN room_type IN (
+                    'Standard Room',
+                    'Couple Room',
+                    'Private Room'
+                )
+                    THEN 0
+                ELSE additional_fee
+            END AS final_fee
+        FROM rooms
+        WHERE status = 'available'
         ORDER BY room_name
     ");
 
@@ -50,6 +79,8 @@ if ($user['account_type'] === 'non_member') {
 }
 
 $rooms = $room_stmt->fetchAll();
+
+
 
 // Add-ons (info only)
 //$addons = $pdo->query("SELECT * FROM addons ORDER BY name")->fetchAll();
@@ -1331,7 +1362,7 @@ function renderRoomCards(grid, occupied, closedToday) {
     const isOccupied = occupied.includes(id) || closedToday.includes(id);
     const roomType   = (r.room_type || 'standard').toLowerCase();
     const icon       = ROOM_ICONS[roomType] || '🛏️';
-    const fee        = parseFloat(r.additional_fee || 0);
+    const fee        = parseFloat(r.final_fee || 0);
     const isSelected = state.roomId === id;
 
     // Membership room condition

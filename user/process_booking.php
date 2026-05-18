@@ -68,6 +68,8 @@ if ($booking_type === 'package'   && !$package_id)   $errors[] = "Package is req
 if (strtotime($appointment_date) < strtotime(date('Y-m-d'))) $errors[] = "Cannot book in the past.";
 
 if (!empty($errors)) {
+    echo "PUMASOK DITO \n";
+    die();
     $_SESSION['booking_error'] = implode(' ', $errors);
     header("Location: book_appointment.php");
     exit;
@@ -269,6 +271,14 @@ try {
     ]);
 
     $appointment_id = $pdo->lastInsertId();
+    // UPDATE ROOM STATUS
+    $updateRoom = $pdo->prepare("
+        UPDATE rooms
+        SET status = 'not available'
+        WHERE room_id = ?
+    ");
+
+    $updateRoom->execute([$room_id]);
 
     // Deduct membership credit if used
     if ($use_membership && $user['semi_luxury_uses_left'] > 0) {

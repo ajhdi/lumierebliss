@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/db.php';
+require_once '../includes/log_action.php';
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: signin_admin.php");
@@ -26,15 +27,15 @@ if (isset($_POST['save_promotion'])) {
                 SET promo_name=?, tagline=?, included_service=?, duration_minutes=?, original_price=?, price_now=?, valid_dates=?
                 WHERE promo_id=?
             ");
-            $stmt->execute([$promo_name, $tagline, $included_service, $duration_minutes, $original_price, $price_now, $valid_dates, $id]);
-            echo json_encode(["status" => "success", "message" => "Promotion updated successfully"]);
+            logAction($pdo, "Updated promotion: $promo_name");
+echo json_encode(["status" => "success", "message" => "Promotion updated successfully"]);
         } else {
             $stmt = $pdo->prepare("
                 INSERT INTO promotions (promo_name, tagline, included_service, duration_minutes, original_price, price_now, valid_dates)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$promo_name, $tagline, $included_service, $duration_minutes, $original_price, $price_now, $valid_dates]);
-            echo json_encode(["status" => "success", "message" => "Promotion added successfully"]);
+           logAction($pdo, "Added promotion: $promo_name");
+echo json_encode(["status" => "success", "message" => "Promotion added successfully"]);
         }
         exit();
     } catch (Exception $e) {
@@ -47,9 +48,15 @@ if (isset($_POST['save_promotion'])) {
 if (isset($_POST['archive_id'])) {
     header('Content-Type: application/json');
     try {
-        $stmt = $pdo->prepare("UPDATE promotions SET is_archived = 1 WHERE promo_id = ?");
-        $stmt->execute([$_POST['archive_id']]);
-        echo json_encode(["status" => "success", "message" => "Promotion archived successfully"]);
+       $stmt = $pdo->prepare("UPDATE promotions SET is_archived = 1 WHERE promo_id = ?");
+$stmt->execute([$_POST['archive_id']]);
+
+$archived = $pdo->prepare("SELECT promo_name FROM promotions WHERE promo_id = ?");
+$archived->execute([$_POST['archive_id']]);
+$archivedName = $archived->fetchColumn();
+logAction($pdo, "Archived promotion: $archivedName");
+
+echo json_encode(["status" => "success", "message" => "Promotion archived successfully"]);
     } catch (Exception $e) {
         echo json_encode(["status" => "error", "message" => $e->getMessage()]);
     }
@@ -60,9 +67,15 @@ if (isset($_POST['archive_id'])) {
 if (isset($_POST['restore_id'])) {
     header('Content-Type: application/json');
     try {
-        $stmt = $pdo->prepare("UPDATE promotions SET is_archived = 0 WHERE promo_id = ?");
-        $stmt->execute([$_POST['restore_id']]);
-        echo json_encode(["status" => "success", "message" => "Promotion restored successfully"]);
+       $stmt = $pdo->prepare("UPDATE promotions SET is_archived = 0 WHERE promo_id = ?");
+$stmt->execute([$_POST['restore_id']]);
+
+$restored = $pdo->prepare("SELECT promo_name FROM promotions WHERE promo_id = ?");
+$restored->execute([$_POST['restore_id']]);
+$restoredName = $restored->fetchColumn();
+logAction($pdo, "Restored promotion: $restoredName");
+
+echo json_encode(["status" => "success", "message" => "Promotion restored successfully"]);
     } catch (Exception $e) {
         echo json_encode(["status" => "error", "message" => $e->getMessage()]);
     }

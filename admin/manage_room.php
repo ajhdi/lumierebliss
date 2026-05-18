@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/db.php';
+require_once '../includes/log_action.php';
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: signin_admin.php");
@@ -71,12 +72,18 @@ if (isset($_POST['save_room'])) {
                 ");
 
                 $stmt->execute([
-                    $room_name,
-                    $room_type,
-                    $fee,
-                    $image_name,
-                    $id
-                ]);
+    $room_name,
+    $room_type,
+    $fee,
+    $image_name,
+    $id
+]);
+
+logAction($pdo, "Updated room: $room_name (Type: $room_type, with new image)");
+echo json_encode([
+    "status"  => "success",
+    "message" => "Room updated successfully"
+]);
 
             } else {
 
@@ -89,17 +96,19 @@ if (isset($_POST['save_room'])) {
                 ");
 
                 $stmt->execute([
-                    $room_name,
-                    $room_type,
-                    $fee,
-                    $id
-                ]);
-            }
+    $room_name,
+    $room_type,
+    $fee,
+    $id
+]);
 
-            echo json_encode([
-                "status"  => "success",
-                "message" => "Room updated successfully"
-            ]);
+logAction($pdo, "Updated room: $room_name (Type: $room_type)");
+echo json_encode([
+    "status"  => "success",
+    "message" => "Room updated successfully"
+]);
+
+            }  // closes: if ($image_name)
 
         } else {
 
@@ -123,10 +132,11 @@ if (isset($_POST['save_room'])) {
                 $image_name
             ]);
 
-            echo json_encode([
-                "status"  => "success",
-                "message" => "Room added successfully"
-            ]);
+           logAction($pdo, "Added room: $room_name (Type: $room_type)");
+echo json_encode([
+    "status"  => "success",
+    "message" => "Room added successfully"
+]);
         }
 
     } catch (Exception $e) {
@@ -144,8 +154,14 @@ if (isset($_POST['archive_room_id'])) {
     header('Content-Type: application/json');
     try {
         $stmt = $pdo->prepare("UPDATE rooms SET status = 'archived' WHERE room_id = ?");
-        $stmt->execute([$_POST['archive_room_id']]);
-        echo json_encode(["status" => "success", "message" => "Room archived successfully"]);
+$stmt->execute([$_POST['archive_room_id']]);
+
+$archivedRoom = $pdo->prepare("SELECT room_name FROM rooms WHERE room_id = ?");
+$archivedRoom->execute([$_POST['archive_room_id']]);
+$archivedRoomName = $archivedRoom->fetchColumn();
+logAction($pdo, "Archived room: $archivedRoomName");
+
+echo json_encode(["status" => "success", "message" => "Room archived successfully"]);
     } catch (Exception $e) {
         echo json_encode(["status" => "error", "message" => $e->getMessage()]);
     }

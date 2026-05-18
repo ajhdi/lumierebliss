@@ -39,6 +39,13 @@ $appointment_time = $_POST['appointment_time']       ?? '';
 $promotion_id     = !empty($_POST['promotion_id'])   ? (int)$_POST['promotion_id']  : null;
 $use_membership   = ($_POST['use_membership'] ?? '0') === '1';
 $end_time = null;
+// Cosmetic add-ons
+$cosmetic_ids = [];
+if (!empty($_POST['cosmetic_ids'])) {
+    $cosmetic_ids = array_filter(
+        array_map('intval', explode(',', $_POST['cosmetic_ids']))
+    );
+}
 echo "<pre>";
 
 print_r([
@@ -221,7 +228,17 @@ if ($use_membership && $user['account_type'] === 'member' && $user['semi_luxury_
 }
 
 /* ─── Price Calculation ─── */
-$subtotal = max(0, $service_price + $room_fee - $discount - $membership_discount);
+// Fetch cosmetic prices total
+// Fetch cosmetic prices total
+$addon_total = 0;
+if (!empty($cosmetic_ids)) {
+    $placeholders = implode(',', array_fill(0, count($cosmetic_ids), '?'));
+    $c_stmt = $pdo->prepare("SELECT SUM(price) FROM cosmetics WHERE cosmetic_id IN ($placeholders)");
+    $c_stmt->execute(array_values($cosmetic_ids));
+    $addon_total = (float)$c_stmt->fetchColumn();
+}
+
+$subtotal = max(0, $service_price + $room_fee + $addon_total - $discount - $membership_discount);
 $vat      = $subtotal * 0.12;
 $total    = $subtotal + $vat;
 
@@ -271,6 +288,19 @@ try {
     ]);
 
     $appointment_id = $pdo->lastInsertId();
+
+    // Insert selected cosmetics
+    if (!empty($cosmetic_ids)) {
+        $cosmetic_stmt = $pdo->prepare("
+            INSERT INTO appointment_cosmetics (appointment_id, cosmetic_id)
+            VALUES (?, ?)
+        ");
+        foreach ($cosmetic_ids as $cid) {
+            $cosmetic_stmt->execute([$appointment_id, $cid]);
+        }
+    }
+
+// UPDATE ROOM STATUS
     // UPDATE ROOM STATUS
     $updateRoom = $pdo->prepare("
         UPDATE rooms

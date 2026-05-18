@@ -1,6 +1,9 @@
 <?php
 session_start();
 require_once '../config/db.php';
+require_once '../includes/log_action.php';
+
+
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: signin_admin.php");
@@ -39,6 +42,11 @@ if (isset($_POST['add_therapist'])) {
         try {
             $stmt->execute([$first, $middle, $last, $gender, $specialty, $work, $photo, $user, $hashed_pass]);
             $msg = "Therapist account created successfully.";
+
+logAction(
+    $pdo,
+    "Added therapist account: " . $first . " " . $last . " (" . $user . ")"
+);
         } catch (PDOException $e) {
             $error = "Username already exists.";
         }
@@ -50,7 +58,23 @@ if (isset($_POST['archive_therapist'])) {
     header('Content-Type: application/json');
     try {
         $stmt = $pdo->prepare("UPDATE therapists SET status = 'archived' WHERE therapist_id = ?");
-        $stmt->execute([$_POST['archive_id']]);
+$stmt->execute([$_POST['archive_id']]);
+
+$getTherapist = $pdo->prepare("
+    SELECT first_name, last_name, username
+    FROM therapists
+    WHERE therapist_id = ?
+");
+$getTherapist->execute([$_POST['archive_id']]);
+$therapist = $getTherapist->fetch();
+
+logAction(
+    $pdo,
+    "Archived therapist account: " .
+    $therapist['first_name'] . " " .
+    $therapist['last_name'] .
+    " (" . $therapist['username'] . ")"
+);
         echo json_encode(["status" => "success", "message" => "Therapist archived successfully"]);
     } catch (Exception $e) {
         echo json_encode(["status" => "error", "message" => $e->getMessage()]);
@@ -61,8 +85,25 @@ if (isset($_POST['archive_therapist'])) {
 // --- LOGIC: RESTORE THERAPIST ---
 if (isset($_POST['restore_therapist'])) {
     $stmt = $pdo->prepare("UPDATE therapists SET status = 'active' WHERE therapist_id = ?");
-    $stmt->execute([$_POST['restore_id']]);
-    $msg = "Therapist account restored.";
+$stmt->execute([$_POST['restore_id']]);
+
+$getTherapist = $pdo->prepare("
+    SELECT first_name, last_name, username
+    FROM therapists
+    WHERE therapist_id = ?
+");
+$getTherapist->execute([$_POST['restore_id']]);
+$therapist = $getTherapist->fetch();
+
+logAction(
+    $pdo,
+    "Restored therapist account: " .
+    $therapist['first_name'] . " " .
+    $therapist['last_name'] .
+    " (" . $therapist['username'] . ")"
+);
+
+$msg = "Therapist account restored.";
 }
 
 // --- LOGIC: UPDATE USER MEMBERSHIP ---
@@ -70,8 +111,26 @@ if (isset($_POST['update_membership'])) {
     $type = $_POST['account_type'];
     $uses = ($type == 'member') ? 2 : 0;
     $stmt = $pdo->prepare("UPDATE users SET account_type = ?, semi_luxury_uses_left = ? WHERE user_id = ?");
-    $stmt->execute([$type, $uses, $_POST['user_id']]);
-    $msg = "User membership updated.";
+$stmt->execute([$type, $uses, $_POST['user_id']]);
+
+$getUser = $pdo->prepare("
+    SELECT first_name, last_name, email
+    FROM users
+    WHERE user_id = ?
+");
+$getUser->execute([$_POST['user_id']]);
+$userData = $getUser->fetch();
+
+logAction(
+    $pdo,
+    "Updated membership to " . strtoupper($type) .
+    " for user: " .
+    $userData['first_name'] . " " .
+    $userData['last_name'] .
+    " (" . $userData['email'] . ")"
+);
+
+$msg = "User membership updated.";
 }
 
 // --- LOGIC: PASSWORD RESET VERIFICATION ---
@@ -106,7 +165,44 @@ if (isset($_POST['finalize_reset'])) {
             $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE user_id = ?");
         }
         $stmt->execute([$hashed_pass, $id]);
-        $msg = "Password reset successful.";
+        if ($type == 'therapist') {
+
+    $getAccount = $pdo->prepare("
+        SELECT first_name, last_name, username
+        FROM therapists
+        WHERE therapist_id = ?
+    ");
+    $getAccount->execute([$id]);
+    $acc = $getAccount->fetch();
+
+    logAction(
+        $pdo,
+        "Reset password for therapist: " .
+        $acc['first_name'] . " " .
+        $acc['last_name'] .
+        " (" . $acc['username'] . ")"
+    );
+
+} else {
+
+    $getAccount = $pdo->prepare("
+        SELECT first_name, last_name, email
+        FROM users
+        WHERE user_id = ?
+    ");
+    $getAccount->execute([$id]);
+    $acc = $getAccount->fetch();
+
+    logAction(
+        $pdo,
+        "Reset password for user: " .
+        $acc['first_name'] . " " .
+        $acc['last_name'] .
+        " (" . $acc['email'] . ")"
+    );
+}
+
+$msg = "Password reset successful.";
     }
 }
 
@@ -137,7 +233,7 @@ $users               = $pdo->query("SELECT * FROM users ORDER BY created_at DESC
             --gold:        #c9a96e;
             --gold-light:  #e8d5b0;
             --gold-dim:    rgba(201,169,110,.13);
-            --dark:        #1a1a1a;
+            --dark:        #0d0d0d;
             --dark-soft:   #2e2e2e;
             --muted:       #8a8070;
             --border:      rgba(201,169,110,.22);
@@ -157,55 +253,7 @@ $users               = $pdo->query("SELECT * FROM users ORDER BY created_at DESC
             overflow-x: hidden;
         }
 
-        /* ─── Sidebar ────────────────────────────────────────────── */
-        .sidebar {
-            position: fixed;
-            inset: 0 auto 0 0;
-            width: var(--sidebar-w);
-            background: var(--dark);
-            display: flex;
-            flex-direction: column;
-            z-index: 1000;
-            transition: transform .35s cubic-bezier(.4,0,.2,1);
-        }
-        .sidebar::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(ellipse at 30% 20%, rgba(201,169,110,.07) 0%, transparent 60%);
-            pointer-events: none;
-        }
-        .sidebar-brand { padding: 36px 28px 28px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-        .sidebar-brand-label {
-            font-family: 'Cormorant Garamond', serif;
-            font-weight: 300;
-            font-size: 1.55rem;
-            color: var(--white);
-            letter-spacing: .08em;
-        }
-        .sidebar-brand-label em { font-style: italic; color: var(--gold); }
-        .sidebar-brand-sub {
-            font-size: .7rem; font-weight: 500; letter-spacing: .18em;
-            text-transform: uppercase; color: var(--muted); margin-top: 4px;
-        }
-        .sidebar-nav { flex: 1; padding: 24px 0; overflow-y: auto; }
-        .nav-section-label {
-            font-size: .65rem; font-weight: 700; letter-spacing: .2em;
-            text-transform: uppercase; color: var(--muted); padding: 16px 28px 8px;
-        }
-        .nav-item {
-            display: flex; align-items: center; gap: 13px;
-            padding: 13px 28px; color: rgba(255,255,255,.5);
-            font-size: .88rem; font-weight: 500; text-decoration: none;
-            transition: color .2s, background .2s; border-left: 3px solid transparent;
-        }
-        .nav-item i { font-size: 1.05rem; width: 20px; text-align: center; flex-shrink: 0; }
-        .nav-item:hover  { color: var(--gold-light); background: rgba(201,169,110,.06); border-left-color: rgba(201,169,110,.4); }
-        .nav-item.active { color: var(--gold); background: rgba(201,169,110,.1); border-left-color: var(--gold); }
-        .sidebar-footer { padding: 20px 0 28px; border-top: 1px solid var(--border); flex-shrink: 0; }
-        .nav-item.danger { color: rgba(220,80,80,.7); }
-        .nav-item.danger:hover { color: #e05555; background: rgba(220,80,80,.07); border-left-color: #e05555; }
-
+    
         /* ─── Layout ─────────────────────────────────────────────── */
         .main-content {
             margin-left: var(--sidebar-w);
@@ -493,21 +541,10 @@ $users               = $pdo->query("SELECT * FROM users ORDER BY created_at DESC
         .btn-modal-submit.success-btn { background: #3a6e3a; color: #c5e8c5; }
         .btn-modal-submit.success-btn:hover { background: #2e5a2e; }
 
-        /* Mobile */
-        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 999; }
-        .mobile-toggle {
-            display: none; position: fixed; top: 18px; left: 18px; z-index: 1100;
-            background: var(--dark); border: 1px solid var(--border); color: var(--gold);
-            width: 42px; height: 42px; border-radius: 10px;
-            align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer;
-        }
+
         @media (max-width: 991px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 80px 20px 40px; }
-            .mobile-toggle { display: flex; }
-            .sidebar-overlay.visible { display: block; }
-        }
+    .main-content { margin-left: 0; padding: 80px 20px 40px; }
+}
         @media (max-width: 600px) {
             .topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
             .tab-subheader { flex-direction: column; align-items: flex-start; }
@@ -521,31 +558,7 @@ $users               = $pdo->query("SELECT * FROM users ORDER BY created_at DESC
 </head>
 <body>
 
-<button class="mobile-toggle" id="mobileToggle" aria-label="Open menu"><i class="bi bi-list"></i></button>
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-<!-- ── Sidebar ──────────────────────────────────────────────────────── -->
-<nav class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-        <div class="sidebar-brand-label">Lumiére <em>&amp;</em> Bliss</div>
-        <div class="sidebar-brand-sub">Administration Console</div>
-    </div>
-    <div class="sidebar-nav">
-        <div class="nav-section-label">Overview</div>
-        <a href="dashboard.php"          class="nav-item"><i class="bi bi-grid-1x2"></i>     Dashboard</a>
-        <div class="nav-section-label">Management</div>
-        <a href="manage_appointment.php" class="nav-item"><i class="bi bi-calendar-event"></i> Appointments</a>
-        <a href="manage_treatments.php"  class="nav-item"><i class="bi bi-droplet-half"></i>  Treatments</a>
-        <a href="manage_therapist.php"   class="nav-item"><i class="bi bi-person-badge"></i>  Therapists</a>
-        <a href="manage_room.php"        class="nav-item"><i class="bi bi-door-open"></i>     Rooms</a>
-        <a href="manage_account.php"     class="nav-item active"><i class="bi bi-people"></i> Accounts</a>
-        <div class="nav-section-label">System</div>
-        <a href="system_logs.php"        class="nav-item"><i class="bi bi-shield-lock"></i>   Audit Logs</a>
-    </div>
-    <div class="sidebar-footer">
-        <a href="logout.php" class="nav-item danger"><i class="bi bi-box-arrow-right"></i> Sign Out</a>
-    </div>
-</nav>
+<?php require_once '../includes/sidebar.php'; ?>
 
 <!-- ── Main Content ──────────────────────────────────────────────────── -->
 <div class="main-content">
@@ -882,15 +895,6 @@ $users               = $pdo->query("SELECT * FROM users ORDER BY created_at DESC
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // ── Mobile sidebar ─────────────────────────────────────────────
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    document.getElementById('mobileToggle').addEventListener('click', () => {
-        sidebar.classList.toggle('open'); overlay.classList.toggle('visible');
-    });
-    overlay.addEventListener('click', () => {
-        sidebar.classList.remove('open'); overlay.classList.remove('visible');
-    });
 
     // ── Custom Tabs ────────────────────────────────────────────────
     document.querySelectorAll('.tab-btn').forEach(btn => {

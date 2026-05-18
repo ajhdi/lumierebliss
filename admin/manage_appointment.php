@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/db.php';
+require_once '../includes/log_action.php';
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: signin_admin.php");
@@ -16,6 +17,8 @@ if (isset($_POST['disable_date_btn'])) {
 
         $stmt = $pdo->prepare("INSERT INTO disabled_dates (disabled_date, remarks) VALUES (?, ?)");
         $stmt->execute([$date, $remarks]);
+
+        logAction($pdo, "Disabled date: $date — Reason: $remarks");
 
         echo json_encode([
             "status"  => "success",
@@ -33,13 +36,24 @@ if (isset($_POST['disable_date_btn'])) {
 // Filter logic
 $filter_date  = isset($_GET['filter_date'])  ? $_GET['filter_date']  : date('Y-m-d');
 $therapist_id = isset($_GET['therapist_id']) ? $_GET['therapist_id'] : '';
+$filter_status = isset($_GET['filter_status']) ? $_GET['filter_status'] : '';
 
-$query = "SELECT a.*, u.first_name, u.last_name, t.first_name as t_fname, t.last_name as t_lname, r.room_name 
+// Include cancelled in admin view
+$query = "SELECT a.*,
+                 u.first_name, u.last_name,
+                 t.first_name as t_fname, t.last_name as t_lname,
+                 r.room_name,
+                 COALESCE(tr.name, pkg.name, 'N/A') AS treatment_name,
+                 c.reason AS cancel_reason,
+                 c.cancelled_at
           FROM appointments a
-          JOIN users u ON a.user_id = u.user_id
-          JOIN therapists t ON a.therapist_id = t.therapist_id
-          JOIN rooms r ON a.room_id = r.room_id
-          WHERE a.status != 'cancelled'";
+          JOIN users u       ON a.user_id = u.user_id
+          JOIN therapists t  ON a.therapist_id = t.therapist_id
+          JOIN rooms r       ON a.room_id = r.room_id
+          LEFT JOIN treatments tr ON a.treatment_id = tr.treatment_id
+          LEFT JOIN packages pkg  ON a.package_id = pkg.package_id
+          LEFT JOIN cancellations c ON a.appointment_id = c.appointment_id
+          WHERE 1=1";
 
 $params = [];
 if ($filter_date) {
@@ -50,6 +64,12 @@ if ($therapist_id) {
     $query .= " AND a.therapist_id = ?";
     $params[] = $therapist_id;
 }
+if ($filter_status) {
+    $query .= " AND a.status = ?";
+    $params[] = $filter_status;
+} 
+// (no filter = show all including cancelled)
+
 $query .= " ORDER BY a.appointment_time ASC";
 
 $stmt = $pdo->prepare($query);
@@ -66,16 +86,12 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Appointments — Lumiére &amp; Bliss</title>
 
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@400;500;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-    <!-- Bootstrap + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
@@ -107,83 +123,6 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             overflow-x: hidden;
         }
 
-        /* ─── Sidebar ───────────────────────────────────────────────── */
-        .sidebar {
-            position: fixed;
-            inset: 0 auto 0 0;
-            width: var(--sidebar-w);
-            background: var(--dark);
-            display: flex;
-            flex-direction: column;
-            z-index: 1000;
-            transition: transform .35s cubic-bezier(.4,0,.2,1);
-        }
-        .sidebar::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(ellipse at 30% 20%, rgba(201,169,110,0.07) 0%, transparent 60%);
-            pointer-events: none;
-        }
-        .sidebar-brand {
-            padding: 36px 28px 28px;
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-        }
-        .sidebar-brand-label {
-            font-family: 'Cormorant Garamond', serif;
-            font-weight: 300;
-            font-size: 1.55rem;
-            color: var(--white);
-            letter-spacing: .08em;
-            line-height: 1.1;
-        }
-        .sidebar-brand-label em { font-style: italic; color: var(--gold); }
-        .sidebar-brand-sub {
-            font-size: .7rem;
-            font-weight: 500;
-            letter-spacing: .18em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin-top: 4px;
-        }
-        .sidebar-nav {
-            flex: 1;
-            padding: 24px 0;
-            overflow-y: auto;
-        }
-        .nav-section-label {
-            font-size: .65rem;
-            font-weight: 700;
-            letter-spacing: .2em;
-            text-transform: uppercase;
-            color: var(--muted);
-            padding: 16px 28px 8px;
-        }
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 13px;
-            padding: 13px 28px;
-            color: rgba(255,255,255,.5);
-            font-size: .88rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: color .2s, background .2s;
-            border-left: 3px solid transparent;
-        }
-        .nav-item i { font-size: 1.05rem; width: 20px; text-align: center; flex-shrink: 0; }
-        .nav-item:hover {
-            color: var(--gold-light);
-            background: rgba(201,169,110,.06);
-            border-left-color: rgba(201,169,110,.4);
-        }
-        .nav-item.active { color: var(--gold); background: rgba(201,169,110,.1); border-left-color: var(--gold); }
-        .sidebar-footer { padding: 20px 0 28px; border-top: 1px solid var(--border); flex-shrink: 0; }
-        .nav-item.danger { color: rgba(220,80,80,.7); }
-        .nav-item.danger:hover { color: #e05555; background: rgba(220,80,80,.07); border-left-color: #e05555; }
-
-        /* ─── Layout ────────────────────────────────────────────────── */
         .main-content {
             margin-left: var(--sidebar-w);
             min-height: 100vh;
@@ -191,7 +130,7 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             transition: margin .35s cubic-bezier(.4,0,.2,1);
         }
 
-        /* ─── Topbar ────────────────────────────────────────────────── */
+        /* ─── Topbar ─────────────────────────────────────────────────── */
         .topbar {
             display: flex;
             justify-content: space-between;
@@ -225,17 +164,12 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             padding: 6px 16px;
             letter-spacing: .04em;
         }
-
-        /* Gold rule */
         .gold-rule {
-            width: 48px;
-            height: 2px;
+            width: 48px; height: 2px;
             background: linear-gradient(90deg, var(--gold), var(--gold-light));
             border-radius: 2px;
             margin: 16px 0 36px;
         }
-
-        /* Section eyebrow */
         .section-eyebrow {
             font-size: .68rem;
             font-weight: 700;
@@ -245,7 +179,7 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             margin-bottom: 16px;
         }
 
-        /* ─── Action button ─────────────────────────────────────────── */
+        /* ─── Buttons ─────────────────────────────────────────────────── */
         .btn-disable {
             display: inline-flex;
             align-items: center;
@@ -262,14 +196,9 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             text-decoration: none;
             transition: background .22s, color .22s, border-color .22s;
         }
-        .btn-disable:hover {
-            background: var(--dark-soft);
-            color: var(--gold);
-            border-color: var(--gold);
-        }
-        .btn-disable i { font-size: .9rem; }
+        .btn-disable:hover { background: var(--dark-soft); color: var(--gold); border-color: var(--gold); }
 
-        /* ─── Filter Card ───────────────────────────────────────────── */
+        /* ─── Filter Card ─────────────────────────────────────────────── */
         .filter-card {
             background: var(--white);
             border-radius: var(--radius-lg);
@@ -321,7 +250,7 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
         }
         .btn-apply:hover { background: var(--dark-soft); color: var(--gold); }
 
-        /* ─── Table Card ────────────────────────────────────────────── */
+        /* ─── Table Card ──────────────────────────────────────────────── */
         .table-card {
             background: var(--white);
             border-radius: var(--radius-lg);
@@ -355,7 +284,6 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             padding: 4px 14px;
         }
 
-        /* Table styles */
         .appt-table { width: 100%; border-collapse: collapse; }
         .appt-table thead tr {
             background: var(--cream);
@@ -382,6 +310,13 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             color: var(--dark-soft);
             vertical-align: middle;
         }
+        .appt-table tbody tr.row-cancelled {
+            opacity: 0.72;
+            background: #fff8f8;
+        }
+        .appt-table tbody tr.row-cancelled:hover {
+            background: #fff2f2;
+        }
 
         .time-cell {
             font-family: 'Cormorant Garamond', serif;
@@ -393,7 +328,7 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
         .client-name { font-weight: 600; color: var(--dark); }
         .therapist-name { color: var(--muted); font-size: .82rem; }
 
-        /* Status badges */
+        /* ─── Status Badges ──────────────────────────────────────────── */
         .badge-status {
             display: inline-flex;
             align-items: center;
@@ -411,10 +346,11 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             border-radius: 50%;
             background: currentColor;
         }
-        .badge-confirmed { background: rgba(74,122,170,.1); color: #4a7aaa; }
-        .badge-completed { background: rgba(90,138,90,.1); color: #5a8a5a; }
+        .badge-confirmed  { background: rgba(74,122,170,.1);  color: #4a7aaa; }
+        .badge-completed  { background: rgba(90,138,90,.1);   color: #5a8a5a; }
+        .badge-cancelled  { background: rgba(185,35,35,.08);  color: #b82323; }
 
-        /* View button */
+        /* ─── View Button ─────────────────────────────────────────────── */
         .btn-view {
             display: inline-flex;
             align-items: center;
@@ -428,29 +364,16 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             font-weight: 600;
             letter-spacing: .06em;
             cursor: pointer;
-            transition: background .2s, border-color .2s, color .2s;
+            transition: background .2s, border-color .2s;
         }
-        .btn-view:hover { background: var(--gold-dim); border-color: var(--gold); color: var(--dark); }
+        .btn-view:hover { background: var(--gold-dim); border-color: var(--gold); }
 
         /* Empty state */
-        .empty-state {
-            text-align: center;
-            padding: 64px 24px;
-        }
-        .empty-state-icon {
-            font-size: 2.5rem;
-            color: var(--gold);
-            opacity: .35;
-            margin-bottom: 16px;
-        }
-        .empty-state-text {
-            font-family: 'Cormorant Garamond', serif;
-            font-weight: 400;
-            font-size: 1.2rem;
-            color: var(--muted);
-        }
+        .empty-state { text-align: center; padding: 64px 24px; }
+        .empty-state-icon { font-size: 2.5rem; color: var(--gold); opacity: .35; margin-bottom: 16px; }
+        .empty-state-text { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; color: var(--muted); }
 
-        /* ─── Modal ─────────────────────────────────────────────────── */
+        /* ─── Disable Date Modal ──────────────────────────────────────── */
         .modal-content {
             border: none;
             border-radius: var(--radius-lg);
@@ -499,7 +422,6 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             transition: background .2s, color .2s;
         }
         .btn-close-custom:hover { background: rgba(255,255,255,.15); color: var(--white); }
-
         .modal-body { padding: 32px; }
         .modal-field-label {
             font-size: .67rem;
@@ -563,42 +485,185 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
         }
         .btn-modal-confirm:hover { background: #a93226; }
 
-        /* Mobile overlay */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,.55);
-            z-index: 999;
+        /* ─── Summary Modal (dark luxury style) ──────────────────────── */
+        #appointmentSummaryModal .modal-content {
+            background: #141414;
+            border: 1px solid rgba(201,169,110,.18) !important;
+            border-radius: 8px !important;
+            box-shadow: 0 40px 100px rgba(0,0,0,.8);
         }
-        .mobile-toggle {
-            display: none;
-            position: fixed;
-            top: 18px; left: 18px;
-            z-index: 1100;
-            background: var(--dark);
-            border: 1px solid var(--border);
+        .modal-crown {
+            height: 3px;
+            background: linear-gradient(90deg, transparent 0%, var(--gold) 30%, var(--gold-light) 50%, var(--gold) 70%, transparent 100%);
+        }
+        #appointmentSummaryModal .modal-header {
+            background: #0d0d0d;
+            border-bottom: 1px solid rgba(201,169,110,.18) !important;
+            padding: 1.75rem 2.25rem 1.5rem;
+            border-radius: 0;
+        }
+        #appointmentSummaryModal .modal-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 60% 120% at 50% -10%, rgba(201,169,110,.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .header-eyebrow {
+            font-family: 'Montserrat', sans-serif;
+            font-size: .65rem;
+            letter-spacing: .3em;
+            text-transform: uppercase;
             color: var(--gold);
-            width: 42px; height: 42px;
-            border-radius: 10px;
-            align-items: center; justify-content: center;
-            font-size: 1.2rem;
+            opacity: .7;
+            margin-bottom: .3rem;
+        }
+        .modal-title-main {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2rem;
+            font-weight: 300;
+            color: #fff;
+            letter-spacing: .04em;
+        }
+        .modal-title-main em { color: var(--gold); font-style: italic; }
+        .modal-ref {
+            font-family: 'Montserrat', sans-serif;
+            font-size: .6rem;
+            letter-spacing: .18em;
+            color: rgba(255,255,255,.4);
+            margin-top: .4rem;
+        }
+        #appointmentSummaryModal .modal-body { padding: 0; background: #141414; }
+        .section-divider {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: .75rem 2.25rem;
+            background: #0d0d0d;
+        }
+        .section-divider span {
+            font-family: 'Montserrat', sans-serif;
+            font-size: .58rem;
+            letter-spacing: .25em;
+            text-transform: uppercase;
+            color: var(--gold);
+            opacity: .65;
+        }
+        .section-divider::before,
+        .section-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(201,169,110,.18));
+        }
+        .section-divider::after { background: linear-gradient(270deg, transparent, rgba(201,169,110,.18)); }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 1rem 2.25rem;
+            border-bottom: 1px solid rgba(255,255,255,.04);
+            transition: .2s;
+        }
+        .summary-row:hover { background: rgba(255,255,255,.02); }
+        .row-label {
+            font-family: 'Montserrat', sans-serif;
+            font-size: .68rem;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,.4);
+        }
+        .row-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.15rem;
+            color: rgba(255,255,255,.9);
+            text-align: right;
+            max-width: 60%;
+        }
+        .row-value.cancelled-reason {
+            color: #e07070;
+            font-style: italic;
+            font-size: 1rem;
+        }
+        .total-area {
+            background: #0d0d0d;
+            padding: 1.6rem 2.25rem 1.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative;
+            overflow: hidden;
+        }
+        .total-area::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 80% 120% at 80% 110%, rgba(201,169,110,.06) 0%, transparent 65%);
+        }
+        .total-label-sub {
+            font-family: 'Montserrat', sans-serif;
+            font-size: .6rem;
+            letter-spacing: .25em;
+            text-transform: uppercase;
+            color: var(--gold);
+            opacity: .65;
+        }
+        .total-label {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.15rem;
+            color: rgba(255,255,255,.55);
+        }
+        .total-amount {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3rem;
+            line-height: 1;
+            font-weight: 300;
+            color: var(--gold);
+        }
+        /* Cancelled total override */
+        .total-amount.is-cancelled {
+            color: #c0392b;
+            text-decoration: line-through;
+            opacity: .6;
+        }
+        .cancelled-banner {
+            background: rgba(185,35,35,.1);
+            border-top: 1px solid rgba(185,35,35,.2);
+            border-bottom: 1px solid rgba(185,35,35,.2);
+            padding: .9rem 2.25rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: .72rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: #e07070;
+        }
+        .modal-footer-custom {
+            padding: 1.25rem 2.25rem 1.75rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: .75rem;
+            border-top: 1px solid rgba(201,169,110,.18);
+            background: #141414;
+        }
+        .btn-outline-gold {
+            font-family: 'Montserrat', sans-serif;
+            font-size: .65rem;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            background: transparent;
+            border: 1px solid rgba(201,169,110,.25);
+            color: rgba(255,255,255,.45);
+            padding: .7rem 1.5rem;
+            transition: .3s;
             cursor: pointer;
         }
+        .btn-outline-gold:hover { border-color: rgba(255,255,255,.25); color: #fff; }
 
-        @media (max-width: 991px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 80px 20px 40px; }
-            .mobile-toggle { display: flex; }
-            .sidebar-overlay.visible { display: block; }
-        }
         @media (max-width: 600px) {
             .topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
-            .filter-card .row > div { margin-bottom: 12px; }
         }
-
-        /* Animations */
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(16px); }
             to   { opacity: 1; transform: translateY(0); }
@@ -606,39 +671,8 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
     </style>
 </head>
 <body>
+<?php require_once '../includes/sidebar.php'; ?>
 
-<!-- Mobile Toggle -->
-<button class="mobile-toggle" id="mobileToggle" aria-label="Open menu">
-    <i class="bi bi-list"></i>
-</button>
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-<!-- ── Sidebar ─────────────────────────────────────────────────────── -->
-<nav class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-        <div class="sidebar-brand-label">Lumiére <em>&amp;</em> Bliss</div>
-        <div class="sidebar-brand-sub">Administration Console</div>
-    </div>
-    <div class="sidebar-nav">
-        <div class="nav-section-label">Overview</div>
-        <a href="dashboard.php" class="nav-item"><i class="bi bi-grid-1x2"></i> Dashboard</a>
-
-        <div class="nav-section-label">Management</div>
-        <a href="manage_appointment.php" class="nav-item active"><i class="bi bi-calendar-event"></i> Appointments</a>
-        <a href="manage_treatments.php" class="nav-item"><i class="bi bi-droplet-half"></i> Treatments</a>
-        <a href="manage_therapist.php" class="nav-item"><i class="bi bi-person-badge"></i> Therapists</a>
-        <a href="manage_room.php" class="nav-item"><i class="bi bi-door-open"></i> Rooms</a>
-        <a href="manage_account.php" class="nav-item"><i class="bi bi-people"></i> Accounts</a>
-
-        <div class="nav-section-label">System</div>
-        <a href="system_logs.php" class="nav-item"><i class="bi bi-shield-lock"></i> Audit Logs</a>
-    </div>
-    <div class="sidebar-footer">
-        <a href="logout.php" class="nav-item danger"><i class="bi bi-box-arrow-right"></i> Sign Out</a>
-    </div>
-</nav>
-
-<!-- ── Main Content ────────────────────────────────────────────────── -->
 <div class="main-content">
 
     <!-- Topbar -->
@@ -660,15 +694,15 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
 
     <div class="gold-rule"></div>
 
-    <!-- ── Filter Card ─────────────────────────────────────────────── -->
+    <!-- Filter -->
     <p class="section-eyebrow">Refine Results</p>
     <div class="filter-card">
         <form class="row g-3" method="GET">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Filter by Date</label>
                 <input type="date" name="filter_date" class="form-control" value="<?= htmlspecialchars($filter_date) ?>">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Filter by Therapist</label>
                 <select name="therapist_id" class="form-select">
                     <option value="">All Therapists</option>
@@ -679,7 +713,16 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="col-md-4 d-flex align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Filter by Status</label>
+                <select name="filter_status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="confirmed"  <?= $filter_status === 'confirmed'  ? 'selected' : '' ?>>Confirmed</option>
+                    <option value="completed"  <?= $filter_status === 'completed'  ? 'selected' : '' ?>>Completed</option>
+                    <option value="cancelled"  <?= $filter_status === 'cancelled'  ? 'selected' : '' ?>>Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
                 <button type="submit" class="btn-apply">
                     Apply Filter <i class="bi bi-arrow-right ms-1"></i>
                 </button>
@@ -687,7 +730,7 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
         </form>
     </div>
 
-    <!-- ── Table Card ──────────────────────────────────────────────── -->
+    <!-- Table -->
     <p class="section-eyebrow">Appointments</p>
     <div class="table-card">
         <div class="table-card-header">
@@ -701,6 +744,7 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
                     <tr>
                         <th>Time</th>
                         <th>Client</th>
+                        <th>Treatment</th>
                         <th>Therapist</th>
                         <th>Room</th>
                         <th>Status</th>
@@ -710,7 +754,7 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
                 <tbody>
                     <?php if(empty($appointments)): ?>
                         <tr>
-                            <td colspan="6">
+                            <td colspan="7">
                                 <div class="empty-state">
                                     <div class="empty-state-icon"><i class="bi bi-calendar2-x"></i></div>
                                     <div class="empty-state-text">No appointments found for this selection</div>
@@ -719,12 +763,13 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
                         </tr>
                     <?php else: ?>
                         <?php foreach($appointments as $app): ?>
-                        <tr>
-                            <td class="time-cell">
-                                <?= date('g:i A', strtotime($app['appointment_time'])) ?>
-                            </td>
+                        <tr class="<?= $app['status'] === 'cancelled' ? 'row-cancelled' : '' ?>">
+                            <td class="time-cell"><?= date('g:i A', strtotime($app['appointment_time'])) ?></td>
                             <td>
                                 <div class="client-name"><?= htmlspecialchars($app['first_name'] . ' ' . $app['last_name']) ?></div>
+                            </td>
+                            <td>
+                                <div style="font-size:.85rem; color:var(--dark);"><?= htmlspecialchars($app['treatment_name']) ?></div>
                             </td>
                             <td>
                                 <div class="therapist-name"><?= htmlspecialchars($app['t_fname'] . ' ' . $app['t_lname']) ?></div>
@@ -735,19 +780,17 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
                             <td>
                                 <?php if($app['status'] === 'confirmed'): ?>
                                     <span class="badge-status badge-confirmed">Confirmed</span>
-                                <?php else: ?>
+                                <?php elseif($app['status'] === 'completed'): ?>
                                     <span class="badge-status badge-completed">Completed</span>
+                                <?php else: ?>
+                                    <span class="badge-status badge-cancelled">Cancelled</span>
                                 <?php endif; ?>
                             </td>
                             <td style="text-align:right; padding-right:28px;">
-
                                 <button class="btn-view"
-                                    onclick='viewAppointment(<?= json_encode($app) ?>)'>
-
+                                    onclick='viewAppointment(<?= htmlspecialchars(json_encode($app), ENT_QUOTES) ?>)'>
                                     View <i class="bi bi-arrow-right" style="font-size:.7rem;"></i>
-
                                 </button>
-
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -761,7 +804,7 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
 
 
 <!-- ── Disable Date Modal ──────────────────────────────────────────── -->
-<div class="modal fade" id="disableDateModal" tabindex="-1" aria-labelledby="disableDateModalLabel" aria-hidden="true">
+<div class="modal fade" id="disableDateModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
         <div class="modal-content">
             <form id="disableDateForm">
@@ -770,11 +813,10 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
                         <span>Studio Calendar</span>
                         Disable a Date
                     </div>
-                    <button type="button" class="btn-close-custom" data-bs-dismiss="modal" aria-label="Close">
+                    <button type="button" class="btn-close-custom" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg"></i>
                     </button>
                 </div>
-
                 <div class="modal-body">
                     <div class="mb-4">
                         <label class="modal-field-label">Select Date to Disable</label>
@@ -786,7 +828,6 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
                             placeholder="e.g. Public holiday, emergency maintenance…" required></textarea>
                     </div>
                 </div>
-
                 <div class="modal-footer">
                     <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn-modal-confirm" onclick="disableDate()">
@@ -797,466 +838,138 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
         </div>
     </div>
 </div>
-<!-- Appointment Summary Modal -->
-<!-- Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-<style>
-:root{
-    --gold:#c9a96e;
-    --gold-light:#e8d5aa;
-    --gold-dim:rgba(201,169,110,.15);
-    --dark:#0d0d0d;
-    --surface:#141414;
-    --surface2:#1a1a1a;
-    --border:rgba(201,169,110,.18);
-    --text-muted:rgba(255,255,255,.4);
-}
 
-/* Modal */
-#appointmentSummaryModal .modal-content{
-    background:var(--surface);
-    border:1px solid var(--border)!important;
-    border-radius:8px!important;
-    overflow:hidden;
-    box-shadow:
-        0 40px 100px rgba(0,0,0,.8),
-        0 0 0 1px var(--border);
-}
-
-/* Top gold line */
-.modal-crown{
-    height:3px;
-    background:linear-gradient(
-        90deg,
-        transparent 0%,
-        var(--gold) 30%,
-        var(--gold-light) 50%,
-        var(--gold) 70%,
-        transparent 100%
-    );
-}
-
-/* Header */
-#appointmentSummaryModal .modal-header{
-    background:var(--dark);
-    border-bottom:1px solid var(--border)!important;
-    padding:1.75rem 2.25rem 1.5rem;
-    position:relative;
-    overflow:hidden;
-}
-
-#appointmentSummaryModal .modal-header::before{
-    content:'';
-    position:absolute;
-    inset:0;
-    background:
-        radial-gradient(
-            ellipse 60% 120% at 50% -10%,
-            rgba(201,169,110,.08) 0%,
-            transparent 70%
-        );
-}
-
-.header-eyebrow{
-    font-family:'Montserrat',sans-serif;
-    font-size:.65rem;
-    letter-spacing:.3em;
-    text-transform:uppercase;
-    color:var(--gold);
-    opacity:.7;
-    margin-bottom:.3rem;
-}
-
-.modal-title-main{
-    font-family:'Cormorant Garamond',serif;
-    font-size:2rem;
-    font-weight:300;
-    color:#fff;
-    letter-spacing:.04em;
-}
-
-.modal-title-main em{
-    color:var(--gold);
-    font-style:italic;
-}
-
-.modal-ref{
-    font-family:'Montserrat',sans-serif;
-    font-size:.6rem;
-    letter-spacing:.18em;
-    color:var(--text-muted);
-    margin-top:.4rem;
-}
-
-/* Close */
-.btn-close-custom{
-    background:transparent;
-    border:1px solid rgba(255,255,255,.12);
-    color:rgba(255,255,255,.5);
-    width:34px;
-    height:34px;
-    border-radius:50%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    transition:.3s;
-}
-
-.btn-close-custom:hover{
-    border-color:var(--gold);
-    color:var(--gold);
-    transform:rotate(90deg);
-}
-
-/* Body */
-#appointmentSummaryModal .modal-body{
-    padding:0;
-    background:var(--surface);
-}
-
-/* Divider */
-.section-divider{
-    display:flex;
-    align-items:center;
-    gap:.75rem;
-    padding:.75rem 2.25rem;
-    background:var(--dark);
-}
-
-.section-divider span{
-    font-family:'Montserrat',sans-serif;
-    font-size:.58rem;
-    letter-spacing:.25em;
-    text-transform:uppercase;
-    color:var(--gold);
-    opacity:.65;
-}
-
-.section-divider::before,
-.section-divider::after{
-    content:'';
-    flex:1;
-    height:1px;
-    background:linear-gradient(90deg,transparent,var(--border));
-}
-
-.section-divider::after{
-    background:linear-gradient(270deg,transparent,var(--border));
-}
-
-/* Rows */
-.summary-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:1rem 2.25rem;
-    border-bottom:1px solid rgba(255,255,255,.04);
-    transition:.2s;
-}
-
-.summary-row:hover{
-    background:rgba(255,255,255,.02);
-}
-
-.row-label{
-    font-family:'Montserrat',sans-serif;
-    font-size:.68rem;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    color:var(--text-muted);
-}
-
-.row-value{
-    font-family:'Cormorant Garamond',serif;
-    font-size:1.15rem;
-    color:rgba(255,255,255,.9);
-    text-align:right;
-}
-
-/* Total */
-.total-area{
-    background:var(--dark);
-    padding:1.6rem 2.25rem 1.8rem;
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-end;
-    position:relative;
-    overflow:hidden;
-}
-
-.total-area::before{
-    content:'';
-    position:absolute;
-    inset:0;
-    background:
-        radial-gradient(
-            ellipse 80% 120% at 80% 110%,
-            rgba(201,169,110,.06) 0%,
-            transparent 65%
-        );
-}
-
-.total-label-sub{
-    font-family:'Montserrat',sans-serif;
-    font-size:.6rem;
-    letter-spacing:.25em;
-    text-transform:uppercase;
-    color:var(--gold);
-    opacity:.65;
-}
-
-.total-label{
-    font-family:'Cormorant Garamond',serif;
-    font-size:1.15rem;
-    color:rgba(255,255,255,.55);
-}
-
-.total-amount{
-    font-family:'Cormorant Garamond',serif;
-    font-size:3rem;
-    line-height:1;
-    font-weight:300;
-    color:var(--gold);
-}
-
-.total-amount sup{
-    font-size:1rem;
-    color:var(--gold-light);
-}
-
-/* Footer */
-.modal-footer-custom{
-    padding:1.25rem 2.25rem 1.75rem;
-    display:flex;
-    justify-content:flex-end;
-    gap:.75rem;
-    border-top:1px solid var(--border);
-    background:var(--surface);
-}
-
-.btn-outline-gold{
-    font-family:'Montserrat',sans-serif;
-    font-size:.65rem;
-    letter-spacing:.18em;
-    text-transform:uppercase;
-    background:transparent;
-    border:1px solid var(--border);
-    color:rgba(255,255,255,.45);
-    padding:.7rem 1.5rem;
-    transition:.3s;
-}
-
-.btn-outline-gold:hover{
-    border-color:rgba(255,255,255,.25);
-    color:#fff;
-}
-
-.btn-gold{
-    font-family:'Montserrat',sans-serif;
-    font-size:.65rem;
-    letter-spacing:.18em;
-    text-transform:uppercase;
-    background:var(--gold);
-    border:none;
-    color:#000;
-    padding:.7rem 2rem;
-    font-weight:600;
-    transition:.3s;
-}
-
-.btn-gold:hover{
-    background:var(--gold-light);
-}
-</style>
-
-<!-- Appointment Summary Modal -->
-<div class="modal fade"
-     id="appointmentSummaryModal"
-     tabindex="-1"
-     aria-hidden="true">
-
+<!-- ── Appointment Summary Modal ──────────────────────────────────── -->
+<div class="modal fade" id="appointmentSummaryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-
         <div class="modal-content border-0">
 
-            <!-- Gold Line -->
             <div class="modal-crown"></div>
 
-            <!-- Header -->
             <div class="modal-header border-0 d-flex justify-content-between align-items-start">
-
                 <div>
-                    <div class="header-eyebrow">
-                        Booking Confirmation
-                    </div>
-
-                    <h3 class="modal-title-main">
-                        Appointment <em>Summary</em>
-                    </h3>
-
-                    <div class="modal-ref">
-                        REF #APT-2026-00847
-                    </div>
+                    <div class="header-eyebrow">Booking Confirmation</div>
+                    <h3 class="modal-title-main">Appointment <em>Summary</em></h3>
+                    <div class="modal-ref" id="sum_ref">REF #APT-2026-—</div>
                 </div>
-
-                <button class="btn-close-custom"
-                        data-bs-dismiss="modal">
-                    ✕
-                </button>
-
+                <button class="btn-close-custom" data-bs-dismiss="modal">✕</button>
             </div>
 
-            <!-- Body -->
             <div class="modal-body">
 
-                <!-- Guest -->
-                <div class="section-divider">
-                    <span>Guest Details</span>
+                <!-- Cancelled Banner (shown only when cancelled) -->
+                <div class="cancelled-banner" id="cancelledBanner" style="display:none;">
+                    <i class="bi bi-x-circle-fill"></i>
+                    This appointment has been cancelled by the guest
                 </div>
 
+                <!-- Guest -->
+                <div class="section-divider"><span>Guest Details</span></div>
                 <div class="summary-row">
-                    <span class="row-label">Your Name</span>
+                    <span class="row-label">Client Name</span>
                     <span class="row-value" id="sum_name"></span>
                 </div>
-
                 <div class="summary-row">
-                    <span class="row-label">Date & Time</span>
+                    <span class="row-label">Date &amp; Time</span>
                     <span class="row-value" id="sum_datetime"></span>
                 </div>
-
                 <div class="summary-row">
                     <span class="row-label">Specialist</span>
                     <span class="row-value" id="sum_therapist"></span>
                 </div>
-
                 <div class="summary-row">
-                    <span class="row-label">Suite</span>
+                    <span class="row-label">Suite / Room</span>
                     <span class="row-value" id="sum_room"></span>
                 </div>
 
                 <!-- Service -->
-                <div class="section-divider">
-                    <span>Service</span>
-                </div>
-
+                <div class="section-divider"><span>Service</span></div>
                 <div class="summary-row">
                     <span class="row-label">Treatment / Package</span>
                     <span class="row-value" id="sum_service"></span>
                 </div>
-
                 <div class="summary-row">
                     <span class="row-label">Subtotal</span>
                     <span class="row-value" id="sum_subtotal"></span>
                 </div>
-
                 <div class="summary-row">
                     <span class="row-label">VAT (12%)</span>
                     <span class="row-value" id="sum_vat"></span>
                 </div>
 
+                <!-- Cancellation reason (shown only when cancelled) -->
+                <div id="cancellationSection" style="display:none;">
+                    <div class="section-divider"><span>Cancellation</span></div>
+                    <div class="summary-row">
+                        <span class="row-label">Reason</span>
+                        <span class="row-value cancelled-reason" id="sum_cancel_reason"></span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="row-label">Cancelled At</span>
+                        <span class="row-value" id="sum_cancelled_at"></span>
+                    </div>
+                </div>
+
                 <!-- Total -->
                 <div class="total-area">
-
                     <div>
-                        <div class="total-label-sub">
-                            Amount Payable
-                        </div>
-
-                        <div class="total-label">
-                            Total Due
-                        </div>
+                        <div class="total-label-sub">Amount Payable</div>
+                        <div class="total-label">Total Due</div>
                     </div>
-
-                    <div class="total-amount"
-                         id="sum_total">
-                    </div>
-
+                    <div class="total-amount" id="sum_total"></div>
                 </div>
 
             </div>
 
-            <!-- Footer -->
             <div class="modal-footer-custom">
-
-                <button class="btn-outline-gold"
-                        data-bs-dismiss="modal">
-                    Close
-                </button>
-
+                <button class="btn-outline-gold" data-bs-dismiss="modal">Close</button>
             </div>
 
         </div>
-
     </div>
-
 </div>
+
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // ── Mobile sidebar ──────────────────────────────────────────────
-    const sidebar  = document.getElementById('sidebar');
-    const overlay  = document.getElementById('sidebarOverlay');
-    const toggle   = document.getElementById('mobileToggle');
-    toggle.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
-        overlay.classList.toggle('visible');
-    });
-    overlay.addEventListener('click', () => {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('visible');
-    });
-
-    // ── Disable Date (unchanged logic) ─────────────────────────────
+    // ── Disable Date ────────────────────────────────────────────────
     function disableDate() {
         const form     = document.getElementById('disableDateForm');
         const formData = new FormData(form);
         formData.append('disable_date_btn', '1');
 
-        fetch(window.location.pathname, {
-            method: 'POST',
-            body: formData
-        })
+        fetch(window.location.pathname, { method: 'POST', body: formData })
         .then(res => res.json())
         .then(data => {
             if (data.status === 'success') {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Disabled!',
-                    text: data.message,
-                    timer: 1500,
-                    showConfirmButton: false
-                });
+                Swal.fire({ icon: 'success', title: 'Disabled!', text: data.message, timer: 1500, showConfirmButton: false });
                 setTimeout(() => location.reload(), 1000);
             } else {
                 Swal.fire({ icon: 'error', title: 'Oops…', text: data.message });
             }
         })
-        .catch(error => {
-            Swal.fire({ icon: 'error', title: 'Server Error', text: 'Something went wrong!' });
-            console.error(error);
-        });
+        .catch(() => Swal.fire({ icon: 'error', title: 'Server Error', text: 'Something went wrong!' }));
     }
-    function viewAppointment(data) {
 
-        // Full Name
+    // ── View Appointment ────────────────────────────────────────────
+    function viewAppointment(data) {
+        const isCancelled = data.status === 'cancelled';
+
+        // Ref
+        document.getElementById('sum_ref').textContent =
+            'REF #APT-' + String(data.appointment_id).padStart(5, '0');
+
+        // Name
         document.getElementById('sum_name').textContent =
             data.first_name + ' ' + data.last_name;
 
         // Date & Time
-        const dateObj = new Date(
-            data.appointment_date + 'T' + data.appointment_time
-        );
-
+        const dateObj = new Date(data.appointment_date + 'T' + data.appointment_time);
         document.getElementById('sum_datetime').textContent =
             dateObj.toLocaleString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+                weekday: 'long', month: 'long', day: 'numeric',
+                year: 'numeric', hour: '2-digit', minute: '2-digit'
             });
 
         // Therapist
@@ -1264,30 +977,49 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             data.t_fname + ' ' + data.t_lname;
 
         // Room
-        document.getElementById('sum_room').textContent =
-            data.room_name;
+        document.getElementById('sum_room').textContent = data.room_name || 'N/A';
 
-        // Service
+        // Service / treatment name
         document.getElementById('sum_service').textContent =
-            '₱' + parseFloat(data.subtotal).toFixed(2);
+            data.treatment_name || 'N/A';
 
         // Subtotal
         document.getElementById('sum_subtotal').textContent =
-            '₱' + parseFloat(data.subtotal).toFixed(2);
+            '₱' + parseFloat(data.subtotal).toLocaleString('en-PH', { minimumFractionDigits: 2 });
 
         // VAT
         document.getElementById('sum_vat').textContent =
-            '₱' + parseFloat(data.vat).toFixed(2);
+            '₱' + parseFloat(data.vat).toLocaleString('en-PH', { minimumFractionDigits: 2 });
 
         // Total
-        document.getElementById('sum_total').textContent =
-            '₱' + parseFloat(data.total_amount).toFixed(2);
+        const totalEl = document.getElementById('sum_total');
+        totalEl.textContent =
+            '₱' + parseFloat(data.total_amount).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+        totalEl.classList.toggle('is-cancelled', isCancelled);
 
-        // Open Modal
-        new bootstrap.Modal(
-            document.getElementById('appointmentSummaryModal')
-        ).show();
+        // Cancelled banner
+        document.getElementById('cancelledBanner').style.display  = isCancelled ? 'flex' : 'none';
 
+        // Cancellation section
+        const cancelSection = document.getElementById('cancellationSection');
+        cancelSection.style.display = isCancelled ? 'block' : 'none';
+        if (isCancelled) {
+            document.getElementById('sum_cancel_reason').textContent =
+                data.cancel_reason || 'No reason provided';
+
+            if (data.cancelled_at) {
+                const ca = new Date(data.cancelled_at);
+                document.getElementById('sum_cancelled_at').textContent =
+                    ca.toLocaleString('en-US', {
+                        month: 'long', day: 'numeric', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+            } else {
+                document.getElementById('sum_cancelled_at').textContent = 'N/A';
+            }
+        }
+
+        new bootstrap.Modal(document.getElementById('appointmentSummaryModal')).show();
     }
 </script>
 </body>

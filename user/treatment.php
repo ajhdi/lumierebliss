@@ -60,6 +60,7 @@ h1, h2, h3, h4, h5, .serif {
 
 /* ── HERO ─────────────────────────────────────────────────── */
 .ritual-hero {
+    content: 'TREATMENTS';
     position: relative;
     min-height: 88vh;
     display: flex;
@@ -80,6 +81,7 @@ h1, h2, h3, h4, h5, .serif {
 .ritual-hero:hover .ritual-hero__bg { transform: scale(1); }
 
 /* Vertical gold accent line */
+/* Vertical gold accent line */
 .ritual-hero::before {
     content: '';
     position: absolute;
@@ -88,6 +90,19 @@ h1, h2, h3, h4, h5, .serif {
     width: 1px;
     background: linear-gradient(to bottom, transparent, var(--brand-gold), transparent);
     opacity: 0.6;
+}
+
+.ritual-hero::after {
+    content: 'TREATMENT';
+    position: absolute;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(5rem, 18vw, 17rem);
+    font-weight: 600;
+    color: rgba(255,255,255,0.025);
+    bottom: -0.1em; right: -0.04em;
+    white-space: nowrap;
+    pointer-events: none;
+    letter-spacing: -0.02em;
 }
 
 .ritual-hero__content {
@@ -339,7 +354,7 @@ h1, h2, h3, h4, h5, .serif {
     overflow: hidden;
 }
 .interlude::before {
-    content: 'LUMIÈRE';
+    content: 'PACKAGE';
     position: absolute;
     font-family: 'Cormorant Garamond', serif;
     font-size: clamp(6rem, 18vw, 18rem);
@@ -652,7 +667,7 @@ h1, h2, h3, h4, h5, .serif {
     <div class="ritual-hero__bg"></div>
 
     <div class="ritual-hero__content">
-        <p class="ritual-hero__eyebrow">Lumiére Curations</p>
+        <p class="ritual-hero__eyebrow">Lumiére Bliss</p>
         <h1 class="ritual-hero__title">Signature<br><em>Rituals</em></h1>
         <p class="ritual-hero__sub">Moments of devoted care, thoughtfully composed for mind, skin, and spirit.</p>
     </div>

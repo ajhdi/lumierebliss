@@ -1,0 +1,240 @@
+/* ================================================================
+   admin/assets/css/admin.css
+   Shared styles for all admin pages — sidebar, layout, base tokens
+   ================================================================ */
+
+/* ─── Design Tokens ─────────────────────────────────────────── */
+:root {
+    --white:        #ffffff;
+    --cream:        #fdfbf7;
+    --gold:         #c9a96e;
+    --gold-light:   #e8d5b0;
+    --gold-dim:     rgba(201,169,110,0.15);
+    --dark:         #1a1a1a;
+    --dark-soft:    #2e2e2e;
+    --muted:        #8a8070;
+    --border:       rgba(201,169,110,0.22);
+    --sidebar-w:    270px;
+    --radius-lg:    18px;
+    --radius-md:    12px;
+    --shadow:       0 8px 32px rgba(26,26,26,0.08);
+    --shadow-deep:  0 16px 48px rgba(26,26,26,0.14);
+}
+
+/* ─── Reset / Base ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+    background: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 18px;
+    color: var(--dark);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* ─── Sidebar ───────────────────────────────────────────────── */
+.sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--sidebar-w);
+    background: var(--dark);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    transition: transform .35s cubic-bezier(.4,0,.2,1);
+}
+.sidebar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(201,169,110,0.07) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+/* Brand lockup */
+.sidebar-brand {
+    padding: 36px 28px 28px;
+    border-bottom: 1px solid var(--border);
+}
+.sidebar-brand-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 1.55rem;
+    color: var(--white);
+    letter-spacing: .08em;
+    line-height: 1.1;
+}
+.sidebar-brand-label em {
+    font-style: italic;
+    color: var(--gold);
+}
+.sidebar-brand-sub {
+    font-size: .7rem;
+    font-weight: 500;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+}
+
+/* Nav items */
+.sidebar-nav {
+    flex: 1;
+    padding: 24px 0;
+    overflow-y: auto;
+}
+.nav-section-label {
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 16px 28px 8px;
+}
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 13px 28px;
+    color: rgba(255,255,255,.5);
+    font-size: .88rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color .2s, background .2s;
+    position: relative;
+    border-left: 3px solid transparent;
+}
+.nav-item i {
+    font-size: 1.05rem;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.nav-item:hover {
+    color: var(--gold-light);
+    background: rgba(201,169,110,.06);
+    border-left-color: rgba(201,169,110,.4);
+}
+.nav-item.active {
+    color: var(--gold);
+    background: rgba(201,169,110,.1);
+    border-left-color: var(--gold);
+}
+.nav-item.active i { color: var(--gold); }
+
+/* Logout at bottom */
+.sidebar-footer {
+    padding: 20px 0 28px;
+    border-top: 1px solid var(--border);
+}
+.nav-item.danger { color: rgba(220,80,80,.7); }
+.nav-item.danger:hover { color: #e05555; background: rgba(220,80,80,.07); border-left-color: #e05555; }
+
+/* ─── Main Content ──────────────────────────────────────────── */
+.main-content {
+    margin-left: var(--sidebar-w);
+    min-height: 100vh;
+    padding: 48px 44px 60px;
+    transition: margin .35s cubic-bezier(.4,0,.2,1);
+}
+
+/* ─── Top Bar ───────────────────────────────────────────────── */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 48px;
+}
+.topbar-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: 2.4rem;
+    color: var(--dark);
+    line-height: 1.1;
+}
+.topbar-title span {
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .75rem;
+    font-weight: 500;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+.topbar-date {
+    font-size: .8rem;
+    color: var(--muted);
+    text-align: right;
+}
+.topbar-date strong {
+    display: block;
+    font-size: .9rem;
+    color: var(--dark-soft);
+    font-weight: 600;
+}
+
+/* Gold rule divider */
+.gold-rule {
+    width: 48px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    border-radius: 2px;
+    margin-bottom: 36px;
+}
+
+/* ─── Section Eyebrow Label ─────────────────────────────────── */
+.section-eyebrow {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 20px;
+}
+
+/* ─── Mobile Toggle ─────────────────────────────────────────── */
+.mobile-toggle {
+    display: none;
+    position: fixed;
+    top: 18px;
+    left: 18px;
+    z-index: 1100;
+    background: var(--dark);
+    border: 1px solid var(--border);
+    color: var(--gold);
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 999;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 991px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main-content { margin-left: 0; padding: 80px 24px 40px; }
+    .mobile-toggle { display: flex; }
+    .sidebar-overlay.visible { display: block; }
+}
+@media (max-width: 600px) {
+    .topbar { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .topbar-date { text-align: left; }
+}
+
+/* ─── Fade-in animation ─────────────────────────────────────── */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}

@@ -54,28 +54,38 @@ h1, h2, h3, h4, h5 {
 }
 
 /* ── HERO ─────────────────────────────────────────────────── */
-.collection-hero {
+.cosmetic-hero {
     position: relative;
-    min-height: 72vh;
+    min-height: 88vh;
     display: flex;
     align-items: flex-end;
-    background: var(--the-dark);
+    justify-content: flex-start;
     overflow: hidden;
+    background: var(--the-dark);
 }
 
-.collection-hero__bg {
+.cosmetic-hero__bg {
     position: absolute;
     inset: 0;
     background: url('../assets/cosmetics-bg.jpg') center/cover no-repeat;
-    opacity: 0.38;
+    opacity: 0.45;
     transform: scale(1.04);
-    transition: transform 9s ease;
+    transition: transform 8s ease;
 }
-.collection-hero:hover .collection-hero__bg { transform: scale(1); }
+.cosmetic-hero:hover .cosmetic-hero__bg { transform: scale(1); }
 
-/* Ghosted display text */
-.collection-hero::before {
-    content: 'COLLECTION';
+.cosmetic-hero::before {
+    content: '';
+    position: absolute;
+    left: 80px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--brand-gold), transparent);
+    opacity: 0.6;
+}
+
+.cosmetic-hero::after {
+    content: 'COSMETICS';
     position: absolute;
     font-family: 'Cormorant Garamond', serif;
     font-size: clamp(5rem, 18vw, 17rem);
@@ -87,25 +97,16 @@ h1, h2, h3, h4, h5 {
     letter-spacing: -0.02em;
 }
 
-/* Vertical gold line */
-.collection-hero::after {
-    content: '';
-    position: absolute;
-    left: 80px; top: 0; bottom: 0;
-    width: 1px;
-    background: linear-gradient(to bottom, transparent, var(--brand-gold) 40%, transparent);
-    opacity: 0.5;
-}
-
-.collection-hero__content {
+.cosmetic-hero__content {
     position: relative;
     z-index: 2;
     padding: 0 80px 80px;
+    max-width: 680px;
 }
 
-.hero-eyebrow {
+.cosmetic-hero__eyebrow {
     font-family: 'DM Sans', sans-serif;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 500;
     letter-spacing: 5px;
     text-transform: uppercase;
@@ -113,33 +114,59 @@ h1, h2, h3, h4, h5 {
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
-.hero-eyebrow::before {
+.cosmetic-hero__eyebrow::before {
     content: '';
     display: block;
     width: 40px; height: 1px;
     background: var(--brand-gold);
 }
 
-.hero-title {
+.cosmetic-hero__title {
     font-family: 'Cormorant Garamond', serif;
     font-weight: 300;
-    font-size: clamp(2.8rem, 6vw, 5.5rem);
+    font-size: clamp(3rem, 6vw, 5.5rem);
     color: var(--pure-white);
     line-height: 1.05;
-    margin-bottom: 20px;
+    margin-bottom: 28px;
 }
-.hero-title em {
+.cosmetic-hero__title em {
     font-style: italic;
     color: var(--gold-light);
 }
 
-.hero-sub {
-    font-size: 0.95rem;
-    color: rgba(255,255,255,0.45);
+.cosmetic-hero__sub {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.55);
     font-weight: 300;
-    max-width: 380px;
+    max-width: 420px;
+    letter-spacing: 0.01em;
+}
+
+.scroll-cue {
+    position: absolute;
+    bottom: 40px;
+    right: 80px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+.scroll-cue__line {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, var(--brand-gold), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+    0%, 100% { opacity: 0.4; transform: scaleY(1); }
+    50%       { opacity: 1;   transform: scaleY(0.7); }
 }
 
 /* ── LAYOUT ──────────────────────────────────────────────── */
@@ -519,14 +546,16 @@ h1, h2, h3, h4, h5 {
 /* ── RESPONSIVE ──────────────────────────────────────────── */
 @media (max-width: 1024px) {
     .container-xl { padding: 0 32px; }
-    .collection-hero__content { padding: 0 32px 64px; }
-    .collection-hero::after { left: 32px; }
+    .cosmetic-hero__content { padding: 0 32px 64px; }
+    .cosmetic-hero::before { left: 32px; }
+    .scroll-cue { right: 32px; }
 }
 @media (max-width: 768px) {
     :root { --section-gap: 72px; }
     .container-xl { padding: 0 20px; }
-    .collection-hero__content { padding: 0 20px 52px; }
-    .collection-hero::after { display: none; }
+    .cosmetic-hero__content { padding: 0 20px 52px; }
+    .cosmetic-hero::before { display: none; }
+    .scroll-cue { right: 20px; }
     .products-grid { grid-template-columns: 1fr 1fr; }
     .modal-split { grid-template-columns: 1fr; }
     .modal-split__image { min-height: 260px; }
@@ -540,12 +569,18 @@ h1, h2, h3, h4, h5 {
 <!-- ══════════════════════════════════════════════════════════
      HERO
      ══════════════════════════════════════════════════════════ -->
-<section class="collection-hero">
-    <div class="collection-hero__bg"></div>
-    <div class="collection-hero__content">
-        <p class="hero-eyebrow">The Collection</p>
-        <h1 class="hero-title"><em>L'Art</em><br>de Vivre</h1>
-        <p class="hero-sub">Artisanal rituals and curations to carry Lumiére into your private sanctuary.</p>
+<section class="cosmetic-hero">
+    <div class="cosmetic-hero__bg"></div>
+
+    <div class="cosmetic-hero__content">
+        <p class="cosmetic-hero__eyebrow">Lumiére Bliss</p>
+        <h1 class="cosmetic-hero__title">L'Art de<br><em>Vivre</em></h1>
+        <p class="cosmetic-hero__sub">Artisanal rituals and curations to carry Lumiére into your private sanctuary.</p>
+    </div>
+
+    <div class="scroll-cue">
+        <div class="scroll-cue__line"></div>
+        <span>Scroll</span>
     </div>
 </section>
 

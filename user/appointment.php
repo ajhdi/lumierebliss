@@ -82,8 +82,9 @@ $rooms = $room_stmt->fetchAll();
 
 
 
-// Add-ons (info only)
-//$addons = $pdo->query("SELECT * FROM addons ORDER BY name")->fetchAll();
+
+$addons = $pdo->query("SELECT * FROM cosmetics ORDER BY category ASC, name ASC")->fetchAll();
+
 
 // Promotions (active)
 //$promotions = $pdo->query("SELECT * FROM promotions WHERE status = 'active' AND (expiry_date IS NULL OR expiry_date >= CURDATE()) ORDER BY name")->fetchAll();
@@ -591,17 +592,30 @@ input[type="hidden"] {}
 /* ── Add-ons (info only) ── */
 .addon-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
 }
 .addon-item {
-  background: var(--surface);
-  border-radius: 10px;
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all .25s;
+  background: var(--dark);
+  padding: 0;
 }
+.addon-item:hover {
+  border-color: var(--gold);
+  box-shadow: 0 4px 20px rgba(201,169,110,.2);
+}
+.addon-item.selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201,169,110,.3);
+}
+.addon-item.selected .addon-check {
+  display: flex !important;
+}
+
 .addon-icon { font-size: 22px; }
 .addon-name { font-size: 13px; font-weight: 500; }
 .addon-desc { font-size: 11px; color: var(--muted); }
@@ -804,6 +818,18 @@ input[type="hidden"] {}
   .step-line { max-width: 40px; }
   .step-dot .label { display: none; }
 }
+
+.room-card {
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;        /* slightly reduced to accommodate image */
+  cursor: pointer;
+  transition: all .25s;
+  overflow: hidden;
+}
+.room-card.selected img {
+  opacity: 0.75;        /* subtle dim on selected state */
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -862,6 +888,7 @@ input[type="hidden"] {}
     <input type="hidden" name="appointment_time" id="h_time" value="">
     <input type="hidden" name="promotion_id" id="h_promo_id" value="">
     <input type="hidden" name="use_membership" id="h_use_membership" value="0">
+    <input type="hidden" name="cosmetic_ids" id="h_cosmetic_ids" value="">
 
     <div class="step-card">
 
@@ -1010,65 +1037,92 @@ input[type="hidden"] {}
           <div class="section-title">Complimentary Add-Ons</div>
           <p class="section-sub">These are informational. Our team prepares them for every session.</p>
 
-          <div class="addon-list" style="margin-bottom:36px;">
-            <?php if(empty($addons)): ?>
-            <!-- Fallback add-ons for display -->
-            <?php $default_addons = [
-              ['icon'=>'🕯️','name'=>'Aromatherapy Candles','description'=>'Soy-based, hand-poured'],
-              ['icon'=>'💧','name'=>'Essential Oils','description'=>'Pure therapeutic grade'],
-              ['icon'=>'🍵','name'=>'Herbal Tea Service','description'=>'Served post-session'],
-              ['icon'=>'🌸','name'=>'Floral Foot Soak','description'=>'Pre-treatment ritual'],
-            ]; ?>
-            <?php foreach($default_addons as $a): ?>
-            <div class="addon-item">
-              <div class="addon-icon"><?= $a['icon'] ?></div>
-              <div>
-                <div class="addon-name"><?= $a['name'] ?></div>
-                <div class="addon-desc"><?= $a['description'] ?></div>
-                <span class="addon-info-tag">INCLUDED</span>
-              </div>
-            </div>
-            <?php endforeach; ?>
-            <?php else: ?>
-            <?php foreach($addons as $a): ?>
-            <div class="addon-item">
-              <div class="addon-icon"><?= htmlspecialchars($a['icon'] ?? '✦') ?></div>
-              <div>
-                <div class="addon-name"><?= htmlspecialchars($a['name']) ?></div>
-                <div class="addon-desc"><?= htmlspecialchars($a['description'] ?? '') ?></div>
-                <span class="addon-info-tag">INCLUDED</span>
-              </div>
-            </div>
-            <?php endforeach; ?>
-            <?php endif; ?>
-          </div>
+         <div class="addon-list" style="margin-bottom:36px;">
+    <?php foreach($addons as $a): ?>
+    <div class="addon-item"
+         onclick="toggleAddon(this)"
+         data-id="<?= $a['cosmetic_id'] ?>"
+         data-name="<?= htmlspecialchars($a['name']) ?>"
+         data-price="<?= $a['price'] ?>">
 
-          <?php if(!empty($promotions)): ?>
-          <div class="section-title" style="font-size:18px; margin-bottom:6px;">Promotions</div>
-          <p class="section-sub">Apply a promotion code to your booking.</p>
-          <div class="promo-select-wrap field-group">
-            <label class="field-label">Select Promotion</label>
-            <div class="select-wrap">
-              <select id="sel_promo" class="field-select" onchange="applyPromo(this.value, this.options[this.selectedIndex].dataset.discount)">
-                <option value="">No promotion</option>
-                <?php foreach($promotions as $p): ?>
-                <option value="<?= $p['promotion_id'] ?>"
-                        data-discount="<?= $p['discount_value'] ?>"
-                        data-type="<?= $p['discount_type'] ?? 'percent' ?>">
-                  <?= htmlspecialchars($p['name']) ?> — <?= $p['discount_type'] == 'fixed' ? '₱'.number_format($p['discount_value'],2) : $p['discount_value'].'% off' ?>
-                </option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-          </div>
-          <?php endif; ?>
+        <div style="
+            position: relative;
+            width: 100%;
+            height: 160px;
+            border-radius: 10px;
+            overflow: hidden;
+        ">
+            <img src="../assets/img/cosmetics/<?= htmlspecialchars($a['image'] ?? 'placeholder.jpg') ?>"
+                 alt="<?= htmlspecialchars($a['name']) ?>"
+                 style="width:100%;height:100%;object-fit:cover;display:block;">
 
+            <div style="
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(to top, rgba(10,10,10,0.85) 0%, rgba(10,10,10,0.2) 55%, transparent 100%);
+            "></div>
+
+            <div style="
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                padding: 14px 16px;
+            ">
+                <div style="
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 2px;
+                    text-transform: uppercase;
+                    color: var(--gold);
+                    margin-bottom: 4px;
+                "><?= htmlspecialchars($a['category']) ?></div>
+
+                <div style="
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #ffffff;
+                "><?= htmlspecialchars($a['name']) ?></div>
+
+                <div style="
+                    font-size: 12px;
+                    color: var(--gold-light);
+                    margin-top: 2px;
+                ">+₱<?= number_format($a['price'], 2) ?></div>
+            </div>
+
+            <!-- Checkmark shown when selected -->
+            <div class="addon-check" style="
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                background: var(--gold);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 13px;
+                font-weight: 700;
+            ">✓</div>
         </div>
+
+    </div>
+    <?php endforeach; ?>
+
+    <?php if(empty($addons)): ?>
+    <p style="font-size:13px; color:var(--muted);">No add-ons available at this time.</p>
+    <?php endif; ?>
+</div>
+
+        </div><!-- /step-body -->
         <div class="step-nav">
           <button type="button" class="btn-back" onclick="goToStep(4)">← Back</button>
           <button type="button" class="btn-next" onclick="goToStep(6)">Review Booking →</button>
         </div>
-      </div>
+      </div><!-- /step-5 panel -->
 
       <!-- ══════════════════════════════════════════
            STEP 6: Review & Confirm
@@ -1110,6 +1164,10 @@ input[type="hidden"] {}
               <span class="label">Room Fee</span>
               <span class="value" id="sum_room_fee">₱0.00</span>
             </div>
+            <div class="summary-row" id="sum_addon_row" style="display:none;">
+              <span class="label">Add-Ons</span>
+              <span class="value" id="sum_addon">+₱0.00</span>
+            </div>
             <div class="summary-row" id="sum_discount_row" style="display:none;">
               <span class="label">Promotion Discount</span>
               <span class="value discount" id="sum_discount">−₱0.00</span>
@@ -1146,7 +1204,7 @@ input[type="hidden"] {}
           <?php endif; ?>
 
           <div class="payment-notice">
-            <strong>💳 Payment on-site.</strong> No payment is collected online. Please arrive 10 minutes early.
+            <strong>Payment on-site.</strong> No payment is collected online. Please arrive 10 minutes early.
           </div>
 
           <div style="text-align:center;">
@@ -1195,11 +1253,12 @@ const state = {
 };
 
 // PHP data available in JS
-const allTherapists = <?= json_encode(array_values($therapists)) ?>;
+const allTherapists  = <?= json_encode(array_values($therapists)) ?>;
 const allRooms       = <?= json_encode(array_values($rooms)) ?>;
 const userAccount    = '<?= $user['account_type'] ?>';
 const memberCredits  = <?= (int)($user['semi_luxury_uses_left'] ?? 0) ?>;
 const VAT_RATE       = 0.12;
+const selectedAddons = {};
 
 /* ═══════════════════════════════════════
    STEP NAVIGATION
@@ -1326,7 +1385,7 @@ function onDateChange() {
 
   wrap.innerHTML = '<span class="time-slot-loader">Checking availability…</span>';
 
-  fetch(`check_availability.php?date=${date}`)
+  fetch(`../admin/check_availability.php?date=${date}`)
     .then(r => r.json())
     .then(res => {
       const available = res.available_times || [];
@@ -1388,41 +1447,46 @@ function renderTherapists() {
   }
   grid.innerHTML = '<span class="time-slot-loader">Loading available specialists…</span>';
 
-  fetch(`check_availability.php?date=${state.date}&time=${state.time}&check=therapists`)
+  fetch(`../admin/check_availability.php?date=${state.date}&time=${state.time}&check=therapists`)
     .then(r => r.json())
     .then(res => {
-      const busy = res.busy_therapists || [];
-      const maxed = res.maxed_therapists || []; // therapists with 4+ sessions
+      const busy  = res.busy_therapists  || [];
+      const maxed = res.maxed_therapists || [];
       renderTherapistCards(grid, busy, maxed);
     })
-    .catch(() => {
-      renderTherapistCards(grid, [], []);
-    });
+    .catch(() => renderTherapistCards(grid, [], []));
 }
 
 function renderTherapistCards(grid, busy, maxed) {
   grid.innerHTML = '';
-  allTherapists.forEach(th => {
+
+  const available = allTherapists.filter(th => {
     const id = String(th.therapist_id);
-    const isBusy  = busy.includes(id)  || maxed.includes(id);
+    return !busy.includes(id) && !maxed.includes(id);
+  });
+
+  if (available.length === 0) {
+    grid.innerHTML = '<span class="time-slot-loader" style="color:#c0392b;">No specialists available at this time. Please go back and choose a different time.</span>';
+    return;
+  }
+
+  available.forEach(th => {
+    const id       = String(th.therapist_id);
     const initials = (th.first_name[0] + (th.last_name ? th.last_name[0] : '')).toUpperCase();
     const fullName = th.first_name + ' ' + (th.last_name || '');
     const isSelected = state.therapistId === id;
 
     const card = document.createElement('div');
-    card.className = 'therapist-card' + (isSelected ? ' selected' : '') + (isBusy ? ' booked' : '');
+    card.className = 'therapist-card' + (isSelected ? ' selected' : '');
     card.innerHTML = `
       <div class="tc-avatar">${initials}</div>
       <div class="tc-name">${fullName}</div>
-      <div class="tc-status">${isBusy ? 'Unavailable' : 'Available'}</div>
+      <div class="tc-status">Available</div>
     `;
-    if (!isBusy) {
-      card.onclick = () => selectTherapist(id, fullName, card);
-    }
+    card.onclick = () => selectTherapist(id, fullName, card);
     grid.appendChild(card);
   });
 }
-
 function selectTherapist(id, name, el) {
   state.therapistId   = id;
   state.therapistName = name;
@@ -1434,17 +1498,19 @@ function selectTherapist(id, name, el) {
 /* ═══════════════════════════════════════
    ROOMS
 ═══════════════════════════════════════ */
-const ROOM_ICONS = { 'standard': '🛋️', 'semi-luxury': '✨', 'luxury': '💎', 'vip': '👑' };
 
+/* ═══════════════════════════════════════
+   ROOMS
+═══════════════════════════════════════ */
 function renderRooms() {
   const grid = document.getElementById('room-grid');
   grid.innerHTML = '<span class="time-slot-loader">Checking room availability…</span>';
 
-  fetch(`check_availability.php?date=${state.date}&time=${state.time}&check=rooms`)
+  fetch(`../admin/check_availability.php?date=${state.date}&time=${state.time}&check=rooms`)
     .then(r => r.json())
     .then(res => {
-      const occupied   = res.busy_rooms         || [];
-      const closedDays = res.closed_rooms_today  || [];
+      const occupied   = res.busy_rooms        || [];
+      const closedDays = res.closed_rooms_today || [];
       renderRoomCards(grid, occupied, closedDays);
     })
     .catch(() => renderRoomCards(grid, [], []));
@@ -1550,7 +1616,6 @@ function renderSummary() {
   document.getElementById('sum_therapist').textContent = state.therapistName || '—';
   document.getElementById('sum_room').textContent      = state.roomName || '—';
 
-  // Format date/time
   let dtText = '—';
   if (state.date && state.time) {
     const d = new Date(state.date + 'T' + state.time);
@@ -1559,10 +1624,10 @@ function renderSummary() {
   }
   document.getElementById('sum_datetime').textContent = dtText;
 
-  // Price computation
-  let base     = state.servicePrice;
-  let roomFee  = state.roomFee;
-  let discount = 0;
+  let base       = state.servicePrice;
+  let roomFee    = state.roomFee;
+  let addonTotal = Object.values(selectedAddons).reduce((sum, a) => sum + a.price, 0);
+  let discount   = 0;
 
   if (state.promoId && state.promoDiscount > 0) {
     if (state.promoType === 'percent') {
@@ -1574,10 +1639,10 @@ function renderSummary() {
 
   let memberDisc = 0;
   if (state.useMembership && memberCredits > 0) {
-    memberDisc = base; // Credit covers service cost
+    memberDisc = base;
   }
 
-  const subtotal = Math.max(0, base + roomFee - discount - memberDisc);
+  const subtotal = Math.max(0, base + roomFee + addonTotal - discount - memberDisc);
   const vat      = subtotal * VAT_RATE;
   const total    = subtotal + vat;
 
@@ -1586,6 +1651,14 @@ function renderSummary() {
   document.getElementById('sum_subtotal').textContent   = '₱' + subtotal.toFixed(2);
   document.getElementById('sum_vat').textContent        = '₱' + vat.toFixed(2);
   document.getElementById('sum_total').textContent      = '₱' + total.toFixed(2);
+
+  const addonRow = document.getElementById('sum_addon_row');
+  if (addonTotal > 0) {
+    addonRow.style.display = 'flex';
+    document.getElementById('sum_addon').textContent = '+₱' + addonTotal.toFixed(2);
+  } else {
+    addonRow.style.display = 'none';
+  }
 
   const discRow = document.getElementById('sum_discount_row');
   if (discount > 0) {
@@ -1627,6 +1700,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 });
+
+/* ═══════════════════════════════════════
+   COSMETIC ADD-ONS
+═══════════════════════════════════════ */
+function toggleAddon(el) {
+  const id    = el.dataset.id;
+  const name  = el.dataset.name;
+  const price = parseFloat(el.dataset.price);
+
+  if (selectedAddons[id]) {
+    delete selectedAddons[id];
+    el.classList.remove('selected');
+  } else {
+    selectedAddons[id] = { name, price };
+    el.classList.add('selected');
+  }
+
+  document.getElementById('h_cosmetic_ids').value = Object.keys(selectedAddons).join(',');
+
+  if (state.step === 6) renderSummary();
+}
 </script>
 
 </body>

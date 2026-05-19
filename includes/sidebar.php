@@ -181,7 +181,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <a href="manage_room.php" class="nav-item <?= $current_page === 'manage_room.php' ? 'active' : '' ?>">
             <i class="bi bi-door-open"></i> Rooms
         </a>
-        <a href="reports.php" class="nav-item <?= $current_page === 'manage_room.php' ? 'active' : '' ?>">
+        <a href="reports.php" class="nav-item <?= $current_page === 'reports.php' ? 'active' : '' ?>">
             <i class="bi bi-file-earmark-text"></i> Reports
         </a>
         <a href="manage_account.php" class="nav-item <?= $current_page === 'manage_account.php' ? 'active' : '' ?>">

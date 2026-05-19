@@ -758,7 +758,7 @@ h1, h2, h3, h4, h5 {
 
                         <div class="modal-footer-row">
                             <div>
-                                <p class="modal-price-label">Investment</p>
+                                <p class="modal-price-label">Price</p>
                                 <p id="modalProductPrice"></p>
                             </div>
                         </div>

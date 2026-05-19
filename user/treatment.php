@@ -803,7 +803,7 @@ h1, h2, h3, h4, h5, .serif {
 
                     <div class="modal-footer-row">
                         <div>
-                            <p class="modal-price-label">Investment</p>
+                            <p class="modal-price-label">Price</p>
                             <p id="detailPrice"></p>
                         </div>
                         <a id="detailBookBtn" href="" class="btn-luxe">Book Session</a>

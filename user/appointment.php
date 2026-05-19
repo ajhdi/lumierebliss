@@ -462,118 +462,24 @@ input[type="hidden"] {}
 .room-card {
   border: 2px solid var(--border);
   border-radius: 12px;
+  padding: 0;
   cursor: pointer;
+  transition: all .25s;
   overflow: hidden;
-  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.25s ease;
-  background: var(--white);
-}
-.room-card:hover {
-  border-color: var(--gold);
-  transform: translateY(-5px);
-  box-shadow: 0 16px 40px rgba(26, 26, 16, 0.10);
-}
-.room-card.selected {
-  border-color: var(--dark);
-  box-shadow: 0 0 0 3px rgba(26,26,26,0.12);
-}
-.room-card.occupied {
-  opacity: .38;
-  cursor: not-allowed;
-  transform: none !important;
-}
-
-/* Image area */
-.rc-visual {
-  width: 100%;
-  height: 120px;
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #f3ede0, #faf8f5);
-  flex-shrink: 0;
-}
-.rc-visual img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.room-card:hover .rc-visual img {
-  transform: scale(1.07);
-}
-/* subtle dark fade at the bottom of the image */
-.rc-visual::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, transparent 55%, rgba(26,26,26,0.22) 100%);
-  pointer-events: none;
-}
-
-/* Fallback when no image */
-.rc-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--gold);
-  gap: 6px;
-}
-.rc-placeholder span {
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  opacity: 0.75;
-}
-
-/* Selected overlay badge on image */
-.rc-selected-badge {
-  position: absolute;
-  top: 8px; right: 8px;
   background: var(--dark);
-  color: white;
-  border-radius: 50%;
-  width: 22px; height: 22px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  z-index: 2;
 }
-.room-card.selected .rc-selected-badge { display: flex; }
-
-/* Info area */
-.rc-body {
-  padding: 12px 14px 14px;
+.room-card:hover { 
+  border-color: var(--gold);
+  box-shadow: 0 4px 20px rgba(201,169,110,.2);
 }
-.rc-type-badge {
-  font-size: 0.6rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: var(--gold);
-  margin-bottom: 3px;
+.room-card.selected { 
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201,169,110,.3);
 }
-.rc-name {
-  font-weight: 600;
-  font-size: 13.5px;
-  margin-bottom: 4px;
-  color: var(--dark);
-  line-height: 1.3;
+.room-card.occupied { 
+  opacity: .4; 
+  cursor: not-allowed; 
 }
-.room-card.selected .rc-name { color: var(--dark); }
-.rc-info {
-  font-size: 11.5px;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.room-card.occupied .rc-status { color: #e07070; font-size: 11px; margin-top: 4px; }
 
 /* ── Membership condition notice ── */
 .room-condition-notice {
@@ -1522,58 +1428,69 @@ function renderRoomCards(grid, occupied, closedToday) {
   allRooms.forEach(r => {
     const id         = String(r.room_id);
     const isOccupied = occupied.includes(id) || closedToday.includes(id);
-    const roomType   = (r.room_type || 'Standard Room');
+    const roomType   = (r.room_type || 'standard').toLowerCase();
     const fee        = parseFloat(r.final_fee || 0);
     const isSelected = state.roomId === id;
 
     let memberLocked = false;
-    if (userAccount !== 'member' && (r.room_type || '').toLowerCase() === 'semi-luxury' && r.members_only == 1) {
+    if (userAccount !== 'member' && roomType === 'semi-luxury' && r.members_only == 1) {
       memberLocked = true;
     }
 
-    // Build image or fallback
-    const imgSrc = r.room_image ? `../assets/img/room/${r.room_image}` : null;
-    const visualHTML = imgSrc
-      ? `<img src="${imgSrc}" alt="${r.room_name}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=rc-placeholder><svg xmlns=\'http://www.w3.org/2000/svg\' width=\'28\' height=\'28\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\' stroke-width=\'1.2\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6\'/></svg><span>No preview</span></div>'">`
-      : `<div class="rc-placeholder">
-           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
-             <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-           </svg>
-           <span>No preview</span>
-         </div>`;
-
-    const statusTag = isOccupied
-      ? `<div class="rc-status">Occupied</div>`
-      : memberLocked
-        ? `<div class="rc-status">Members Only</div>`
-        : '';
+    const imgSrc = (r.room_image && r.room_image !== '')
+      ? `../assets/img/room/${r.room_image}`
+      : `../assets/img/room/default.jpg`;
 
     const card = document.createElement('div');
-    card.className = 'room-card'
-      + (isSelected ? ' selected' : '')
-      + (isOccupied || memberLocked ? ' occupied' : '');
-
+    card.className = 'room-card' + (isSelected ? ' selected' : '') + (isOccupied || memberLocked ? ' occupied' : '');
     card.innerHTML = `
-      <div class="rc-visual">
-        ${visualHTML}
-        <div class="rc-selected-badge">✓</div>
+    <div style="
+      position: relative;
+      width: 100%;
+      height: 200px;
+      border-radius: 10px;
+      overflow: hidden;
+    ">
+      <img src="${imgSrc}" alt="${r.room_name}"
+          style="width:100%;height:100%;object-fit:cover;display:block;">
+
+      <div style="
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(10,10,10,0.85) 0%, rgba(10,10,10,0.2) 55%, transparent 100%);
+      "></div>
+
+      <div style="
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 14px 16px;
+      ">
+        <div style="
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          color: var(--gold);
+          margin-bottom: 4px;
+        ">${r.room_type}</div>
+
+        <div style="
+          font-size: 14px;
+          font-weight: 600;
+          color: #ffffff;
+        ">${fee > 0 ? '+₱' + fee.toFixed(2) : 'No extra fee'}</div>
+
+        ${isOccupied ? '<div style="font-size:11px;color:#e07070;margin-top:4px;">Occupied</div>' : ''}
+        ${memberLocked ? '<div style="font-size:11px;color:#e07070;margin-top:4px;">Members Only</div>' : ''}
       </div>
-      <div class="rc-body">
-        <div class="rc-type-badge">${roomType}</div>
-        <div class="rc-name">${r.room_name}</div>
-        <div class="rc-info">
-          ${fee > 0
-            ? `<span style="color:var(--gold);font-weight:600;">+₱${fee.toFixed(2)}</span>`
-            : `<span style="color:#6fcf97;font-weight:600;">No extra fee</span>`}
-        </div>
-        ${statusTag}
-      </div>
-    `;
+    </div>
+  `;
 
     if (!isOccupied && !memberLocked) {
       card.onclick = () => selectRoom(id, r.room_name, fee, card);
     }
-
     grid.appendChild(card);
   });
 }

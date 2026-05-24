@@ -204,6 +204,7 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
 
     <style>
         /* ─── Tokens ─────────────────────────────────────────────── */
+<<<<<<< HEAD
         :root {
             --white:       #ffffff;
             --cream:       #fdfbf7;
@@ -220,6 +221,24 @@ $statuses   = $pdo->query("SELECT DISTINCT status    FROM rooms ORDER BY status 
             --shadow:      0 8px 32px rgba(26,26,26,.07);
             --shadow-deep: 0 16px 48px rgba(26,26,26,.13);
         }
+=======
+       :root {
+                    --white:       #ffffff;
+                    --cream:       #fdfbf7;
+                    --gold:        #c9a96e;
+                    --gold-light:  #e8d5b0;
+                    --gold-dim:    rgba(201,169,110,.13);
+                    --dark:        #0d0d0d;
+                    --dark-soft:   #2e2e2e;
+                    --muted:       #8a8070;
+                    --border:      rgba(201,169,110,.22);
+                    --sidebar-w:   270px;
+                    --radius-lg:   18px;
+                    --radius-md:   12px;
+                    --shadow:      0 8px 32px rgba(26,26,26,.07);
+                    --shadow-deep: 0 16px 48px rgba(26,26,26,.13);
+                }
+>>>>>>> 69ecda6ad3f0ad473ffa36a77f98410f4ce4805a
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             background: var(--cream);

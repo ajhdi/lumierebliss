@@ -102,7 +102,11 @@ $therapists = $pdo->query("SELECT therapist_id, first_name, last_name FROM thera
             --gold:        #c9a96e;
             --gold-light:  #e8d5b0;
             --gold-dim:    rgba(201,169,110,0.14);
+<<<<<<< HEAD
             --dark:#0d0d0d;
+=======
+            --dark:        #0d0d0d;
+>>>>>>> 69ecda6ad3f0ad473ffa36a77f98410f4ce4805a
             --dark-soft:   #2e2e2e;
             --muted:       #8a8070;
             --border:      rgba(201,169,110,0.22);

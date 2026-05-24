@@ -1,9 +1,9 @@
 <?php
+session_start(); // ← add this FIRST
 include '../includes/header.php';
-// session_start();
 
 if (!isset($_SESSION['booking_success'])) {
-    header("Location: book_appointment.php");
+    header("Location: appointment.php");
     exit;
 }
 

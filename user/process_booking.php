@@ -23,7 +23,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: book_appointment.php");
+    header("Location: appointment.php");
     exit;
 }
 
@@ -39,13 +39,6 @@ $appointment_time = $_POST['appointment_time']       ?? '';
 $promotion_id     = !empty($_POST['promotion_id'])   ? (int)$_POST['promotion_id']  : null;
 $use_membership   = ($_POST['use_membership'] ?? '0') === '1';
 $end_time = null;
-// Cosmetic add-ons
-$cosmetic_ids = [];
-if (!empty($_POST['cosmetic_ids'])) {
-    $cosmetic_ids = array_filter(
-        array_map('intval', explode(',', $_POST['cosmetic_ids']))
-    );
-}
 echo "<pre>";
 
 print_r([
@@ -75,10 +68,8 @@ if ($booking_type === 'package'   && !$package_id)   $errors[] = "Package is req
 if (strtotime($appointment_date) < strtotime(date('Y-m-d'))) $errors[] = "Cannot book in the past.";
 
 if (!empty($errors)) {
-    echo "PUMASOK DITO \n";
-    die();
     $_SESSION['booking_error'] = implode(' ', $errors);
-    header("Location: book_appointment.php");
+    header("Location: appointment.php");
     exit;
 }
 
@@ -228,17 +219,7 @@ if ($use_membership && $user['account_type'] === 'member' && $user['semi_luxury_
 }
 
 /* ─── Price Calculation ─── */
-// Fetch cosmetic prices total
-// Fetch cosmetic prices total
-$addon_total = 0;
-if (!empty($cosmetic_ids)) {
-    $placeholders = implode(',', array_fill(0, count($cosmetic_ids), '?'));
-    $c_stmt = $pdo->prepare("SELECT SUM(price) FROM cosmetics WHERE cosmetic_id IN ($placeholders)");
-    $c_stmt->execute(array_values($cosmetic_ids));
-    $addon_total = (float)$c_stmt->fetchColumn();
-}
-
-$subtotal = max(0, $service_price + $room_fee + $addon_total - $discount - $membership_discount);
+$subtotal = max(0, $service_price + $room_fee - $discount - $membership_discount);
 $vat      = $subtotal * 0.12;
 $total    = $subtotal + $vat;
 
@@ -289,27 +270,6 @@ try {
 
     $appointment_id = $pdo->lastInsertId();
 
-    // Insert selected cosmetics
-    if (!empty($cosmetic_ids)) {
-        $cosmetic_stmt = $pdo->prepare("
-            INSERT INTO appointment_cosmetics (appointment_id, cosmetic_id)
-            VALUES (?, ?)
-        ");
-        foreach ($cosmetic_ids as $cid) {
-            $cosmetic_stmt->execute([$appointment_id, $cid]);
-        }
-    }
-
-// UPDATE ROOM STATUS
-    // UPDATE ROOM STATUS
-    $updateRoom = $pdo->prepare("
-        UPDATE rooms
-        SET status = 'not available'
-        WHERE room_id = ?
-    ");
-
-    $updateRoom->execute([$room_id]);
-
     // Deduct membership credit if used
     if ($use_membership && $user['semi_luxury_uses_left'] > 0) {
         $pdo->prepare("
@@ -322,7 +282,7 @@ try {
     $pdo->rollBack();
     error_log('Booking insert failed: ' . $e->getMessage());
     $_SESSION['booking_error'] = "A system error occurred. Please try again.";
-    header("Location: book_appointment.php");
+    header("Location:appointment.php");
     exit;
 }
 

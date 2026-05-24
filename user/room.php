@@ -78,6 +78,21 @@ h1, h2, h3, h4, h5, .serif {
     width: 1px;
     background: linear-gradient(to bottom, transparent, var(--brand-gold), transparent);
     opacity: 0.6;
+    z-index: 1;
+}
+
+.suite-hero::after {
+    content: 'ROOMS';
+    position: absolute;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(5rem, 18vw, 17rem);
+    font-weight: 600;
+    color: rgba(255,255,255,0.025);
+    bottom: -0.1em; right: -0.04em;
+    white-space: nowrap;
+    pointer-events: none;
+    letter-spacing: -0.02em;
+    z-index: 1;
 }
 
 .suite-hero__content {
@@ -639,7 +654,7 @@ h1, h2, h3, h4, h5, .serif {
         <?php if (!empty($rooms)): ?>
             <div class="rooms-grid">
                 <?php foreach ($rooms as $r):
-                    $is_available = strtolower($r['status']) === 'available';
+                    $is_available = in_array(strtolower($r['status']), ['available', 'active', 'occupied']);
                     $has_image    = !empty($r['room_image']);
                     $fee_zero     = floatval($r['additional_fee']) == 0;
                 ?>
